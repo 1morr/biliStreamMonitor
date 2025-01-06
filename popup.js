@@ -18,14 +18,25 @@ const headers = {
 // popup.js
 
 
-// Add this function to handle notification state changes
+// Modified function to handle notification state changes
 async function toggleNotificationState() {
     const button = document.getElementById('notificationButton');
     const result = await chrome.storage.local.get('notification');
-    let currentState = result.notification || 0;
+    let currentState = result.notification;
+    
+    // If notification setting doesn't exist, start with state 2 (all notifications)
+    if (currentState === undefined) {
+        currentState = 2;
+    }
 
-    // Cycle through states: 0 -> 1 -> 2 -> 0
-    currentState = (currentState + 1) % 3;
+    // Cycle through states: 2 -> 1 -> 0 -> 2
+    if (currentState === 2) {
+        currentState = 1;
+    } else if (currentState === 1) {
+        currentState = 0;
+    } else {
+        currentState = 2;
+    }
 
     // Update storage
     await chrome.storage.local.set({ notification: currentState });
@@ -170,6 +181,7 @@ async function importConfig(file) {
     }
 }
 
+/*
 function showMessage(message) {
     // Remove any existing error messages
     console.log('Showing Message at', new Date().toLocaleString())
@@ -208,6 +220,7 @@ function removeMessage() {
         existingOverlay.remove();
     }
 }
+*/
 
 
 function showError(message) {
@@ -295,185 +308,252 @@ function formatDuration(milliseconds) {
     }
 }
 
+
+// 获取流媒体数据
+async function fetchStreamerData() {
+    const streamers = await chrome.storage.local.get('streamingInfo');
+    const deletedStreamersData = await chrome.storage.local.get('deletedStreamers');
+    const favoriteStreamersData = await chrome.storage.local.get('favoriteStreamers');
+    const newStreamersData = await chrome.storage.local.get('newlyStreaming');
+
+    return {
+        streamersList: streamers.streamingInfo || [],
+        deletedStreamers: deletedStreamersData.deletedStreamers || [],
+        favoriteStreamers: favoriteStreamersData.favoriteStreamers || [],
+        newlyStreaming: newStreamersData.newlyStreaming || []
+    };
+}
+
+// 对流媒体数据进行排序
+function sortStreamers(streamersList, favoriteStreamers) {
+    return streamersList.sort((a, b) => {
+        if (a.live_status === 1 && b.live_status !== 1) return -1;
+        if (a.live_status !== 1 && b.live_status === 1) return 1;
+
+        const aIsFavorite = favoriteStreamers.includes(a.uid);
+        const bIsFavorite = favoriteStreamers.includes(b.uid);
+        if (aIsFavorite && !bIsFavorite) return -1;
+        if (!aIsFavorite && bIsFavorite) return 1;
+
+        return b.medal_level - a.medal_level;
+    });
+}
+
+// 渲染流媒体数据到页面
+function renderStreamers(sortedStreamers, deletedStreamers, favoriteStreamers, newlyStreaming) {
+    const container = document.getElementById('streamerContainer');
+    container.innerHTML = '';
+
+    sortedStreamers.forEach(streamer => {
+        if (deletedStreamers.includes(streamer.uid)) return;
+
+        const iconDiv = createStreamerIcon(streamer, favoriteStreamers, newlyStreaming);
+        container.appendChild(iconDiv);
+    });
+}
+
+// popup.js
+
+// 显示 tooltip
+function showTooltip(event, content) {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.innerHTML = content;
+    tooltip.style.display = 'block';
+
+    // 计算 tooltip 的位置
+    const iconRect = event.target.getBoundingClientRect(); // 获取图标的边界信息
+    const tooltipWidth = tooltip.offsetWidth; // 获取 tooltip 的宽度
+    const tooltipHeight = tooltip.offsetHeight; // 获取 tooltip 的高度
+
+    // 将 tooltip 显示在图标正下方
+    let left = iconRect.left + (iconRect.width / 2) - (tooltipWidth / 2); // 图标水平中心 - tooltip 宽度的一半
+    let top = iconRect.bottom + 10; // 图标底部 + 10px
+
+    // 如果 tooltip 超出窗口右侧，则向左调整
+    if (left + tooltipWidth > window.innerWidth) {
+        left = window.innerWidth - tooltipWidth - 10; // 窗口右侧 - tooltip 宽度 - 10px
+    }
+
+    // 如果 tooltip 超出窗口左侧，则向右调整
+    if (left < 0) {
+        left = 10; // 窗口左侧 + 10px
+    }
+
+    // 如果 tooltip 超出窗口底部，则显示在图标上方
+    if (top + tooltipHeight > window.innerHeight) {
+        top = iconRect.top - tooltipHeight - 10; // 图标顶部 - tooltip 高度 - 10px
+    }
+
+    // 设置 tooltip 的位置
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+}
+
+// 隐藏 tooltip
+function hideTooltip() {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.style.display = 'none';
+}
+
+// 获取房间信息并更新 tooltip 内容
+async function fetchRoomInfo(roomid) {
+    const url = `https://api.live.bilibili.com/room/v1/Room/get_info?room_id=${roomid}`;
+    const response = await fetch(url, {
+        headers: headers,
+        credentials: 'include'
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch room info: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (data.code !== 0) {
+        throw new Error(`API Error: ${data.message || 'Unknown error'}`);
+    }
+
+    return data;
+}
+
+// 处理鼠标悬停事件，显示 tooltip
+function handleTooltipHover(event, streamer) {
+    let tooltipTimeout;
+
+    // 确保事件目标是 img 元素
+    if (event.target.tagName.toLowerCase() !== 'img') return;
+
+    event.target.onmouseenter = async () => {
+        if (streamer.live_status === 1) {
+            tooltipTimeout = setTimeout(async () => {
+                try {
+                    const roomid = streamer.link.split('//')[1].split('/')[1].split('?')[0];
+                    const roomInfo = await fetchRoomInfo(roomid);
+
+                    const startTime = new Date(roomInfo.data.live_time.replace(/ /, 'T'));
+                    const elapsedTime = Date.now() - startTime.getTime();
+                    const duration = formatDuration(elapsedTime);
+
+                    const tooltipContent = `
+                        <div class="tooltip-content">
+                            <img class="tooltip-image" src="${roomInfo.data.keyframe}" alt="${roomInfo.data.title}">
+                            <div class="live-time">${duration}</div>
+                            <div class="tooltip-title">${roomInfo.data.title}</div>
+                        </div>
+                    `;
+
+                    showTooltip(event, tooltipContent);
+                } catch (error) {
+                    console.error('Error fetching room info:', error);
+                }
+            }, 220); // 0.22 秒延迟
+        }
+    };
+
+    event.target.onmouseleave = () => {
+        clearTimeout(tooltipTimeout);
+        hideTooltip();
+    };
+
+    // 添加 onmousedown 事件处理程序
+    event.target.onmousedown = () => {
+        clearTimeout(tooltipTimeout);
+    };
+}
+
+// 在 createStreamerIcon 中调用 handleTooltipHover
+function createStreamerIcon(streamer, favoriteStreamers, newlyStreaming) {
+    const iconDiv = document.createElement('div');
+    iconDiv.className = 'icon' + (streamer.live_status === 1 ? '' : ' not-streaming');
+
+    if (newlyStreaming.includes(streamer.uid)) {
+        iconDiv.classList.add('new-streamer');
+    }
+
+    iconDiv.onclick = () => {
+        chrome.tabs.create({ url: streamer.link });
+        const tooltip = document.getElementById('tooltip');
+        tooltip.style.display = 'none'; // Hide the tooltip
+    };
+
+    iconDiv.oncontextmenu = (event) => {
+        showContextMenu(event, streamer, iconDiv);
+        const tooltip = document.getElementById('tooltip');
+        tooltip.style.display = 'none'; // Hide the tooltip
+    };
+
+    iconDiv.onmousedown = (event) => {
+        if (event.button === 1) { // Middle mouse button
+            chrome.tabs.create({ url: streamer.link, active: false });
+            event.preventDefault(); // Prevent default middle button behavior
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.display = 'none'; // Hide the tooltip
+        }
+    };
+
+    const img = document.createElement('img');
+    img.src = streamer.streamer_icon;
+    img.alt = streamer.streamer_name;
+
+    // 将 tooltip 事件绑定到 img 上
+    handleTooltipHover({ target: img }, streamer);
+
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'streamer-name ' + (streamer.live_status === 1 ? 'live' : 'not-streaming');
+    nameDiv.textContent = streamer.streamer_name;
+
+    const medalDiv = document.createElement('div');
+    medalDiv.className = 'medal-level';
+    medalDiv.textContent = `${streamer.medal_name} (Level ${streamer.medal_level})`;
+
+    if (streamer.live_status === 1) {
+        const liveBadge = document.createElement('div');
+        liveBadge.className = 'live-badge';
+        liveBadge.textContent = 'Live';
+        if (newlyStreaming.includes(streamer.uid)) {
+            liveBadge.classList.add('new-live');
+        }
+        iconDiv.appendChild(liveBadge);
+    }
+
+    if (favoriteStreamers.includes(streamer.uid)) {
+        addFavoriteStar(iconDiv);
+    }
+
+    iconDiv.appendChild(img);
+    iconDiv.appendChild(nameDiv);
+    iconDiv.appendChild(medalDiv);
+
+    return iconDiv;
+}
+
+// 处理新流媒体的逻辑
+function handleNewStreamers(newlyStreaming) {
+    if (document.visibilityState === 'visible') {
+        console.log('Popup showed, Removing newlyStreaming', new Date().toLocaleString());
+        chrome.action.setBadgeText({ text: '' });
+        chrome.storage.local.set({ 'newlyStreaming': [] });
+    }
+}
+
+// 主函数：加载流媒体数据
 async function loadStreamerData() {
-    console.log('Loading Streamer Data at', new Date().toLocaleString())
     try {
-        const streamers = await chrome.storage.local.get('streamingInfo');
-        const deletedStreamersData = await chrome.storage.local.get('deletedStreamers');
-        const favoriteStreamersData = await chrome.storage.local.get('favoriteStreamers');
-        const newStreamersData = await chrome.storage.local.get('newlyStreaming');
-        // console.log("this is newStreamersData", newStreamersData)
-        
-        const streamersList = streamers.streamingInfo || [];
-        const deletedStreamers = deletedStreamersData.deletedStreamers || [];
-        const favoriteStreamers = favoriteStreamersData.favoriteStreamers || [];
-        const newlyStreaming = newStreamersData.newlyStreaming || [];
-
-        // console.log("this is newStreamers", newlyStreaming)
-
+        const { streamersList, deletedStreamers, favoriteStreamers, newlyStreaming } = await fetchStreamerData();
 
         if (streamersList.length === 0) {
             throw new Error('No streamer data found. Please make sure you are logged into Bilibili and try refreshing.');
         }
 
-        /*
-        
-        // Update new streamers list
-        await chrome.storage.local.set({ 
-            'newlyStreaming': newlyStreaming,
-            'previousStreamers': streamersList 
-        });
-
-        */
-
-        const sortedStreamers = streamersList.sort((a, b) => {
-            // First, separate streaming from not streaming
-            if (a.live_status === 1 && b.live_status !== 1) return -1;
-            if (a.live_status !== 1 && b.live_status === 1) return 1;
-
-            // Within each group (streaming/not streaming), prioritize favorites
-            const aIsFavorite = favoriteStreamers.includes(a.uid);
-            const bIsFavorite = favoriteStreamers.includes(b.uid);
-            if (aIsFavorite && !bIsFavorite) return -1;
-            if (!aIsFavorite && bIsFavorite) return 1;
-
-            // If both are favorite or both are not favorite, sort by medal level
-            return b.medal_level - a.medal_level;
-        });
-
-        const container = document.getElementById('streamerContainer');
-        container.innerHTML = '';
-
-        sortedStreamers.forEach(streamer => {
-            if (deletedStreamers.includes(streamer.uid)) return;
-
-            const iconDiv = document.createElement('div');
-            iconDiv.className = 'icon' + (streamer.live_status === 1 ? '' : ' not-streaming');
-
-
-            let tooltipTimeout;
-
-            iconDiv.onmouseenter = async (event) => {
-                // Start a timer to show the tooltip after 3 seconds
-                tooltipTimeout = setTimeout(async () => {
-                    if (streamer.live_status === 1) {
-                        const roomid = streamer.link.split('//')[1].split('/')[1].split('?')[0];
-                        try {
-                            const roomInfo = await getRoomInfo(roomid);
-                            const tooltip = document.getElementById('tooltip');
-
-
-                            const startTime = new Date(roomInfo.data.live_time.replace(/ /, 'T')); // Replace space with 'T' for ISO format
-                            const elapsedTime = Date.now() - startTime.getTime();
-                            const duration = formatDuration(elapsedTime);
-
-                            // Update tooltip content with the thumbnail image and title
-                            tooltip.innerHTML = `
-                                <div class="tooltip-content">
-                                    <img class="tooltip-image" src="${roomInfo.data.keyframe}" alt="${roomInfo.data.title}">
-                                    <div class="live-time">${duration}</div>
-                                    <div class="tooltip-title">${roomInfo.data.title}</div>
-                                </div>
-                                `;
-
-                            tooltip.style.display = 'block';
-                            tooltip.style.left = `${event.pageX + 15}px`;
-                            tooltip.style.top = `${event.pageY + 20}px`;
-
-                            // Get the dimensions of the tooltip and window
-                            const tooltipRect = tooltip.getBoundingClientRect();
-                            const windowWidth = window.innerWidth;
-                            const windowHeight = window.innerHeight;
-
-                            // Adjust the position if the tooltip goes out of bounds
-                            if (tooltipRect.right > windowWidth) {
-                                tooltip.style.left = `${windowWidth - tooltipRect.width - 10}px`; // Adjust to the left
-                            }
-                            if (tooltipRect.bottom > windowHeight) {
-                                tooltip.style.top = `${event.pageY - tooltipRect.height - 10}px`; // Adjust to above
-                            }
-
-                        } catch (error) {
-                            console.error('Error fetching room info:', error);
-                        }
-                    }
-                }, 250); // 0.25 seconds delay
-            };
-
-            iconDiv.onmouseleave = () => {
-                // Clear the timeout if the mouse leaves the icon
-                clearTimeout(tooltipTimeout);
-                const tooltip = document.getElementById('tooltip');
-                tooltip.style.display = 'none'; // Hide tooltip on mouse leave
-            };
-
-
-
-            if (newlyStreaming.includes(streamer.uid)) {
-                iconDiv.classList.add('new-streamer');
-            }
-
-            iconDiv.onclick = () => {
-                chrome.tabs.create({ url: streamer.link });
-                const tooltip = document.getElementById('tooltip');
-                tooltip.style.display = 'none'; // Hide the tooltip
-                clearTimeout(tooltipTimeout);
-            };
-
-            iconDiv.oncontextmenu = (event) => {
-                showContextMenu(event, streamer, iconDiv);
-                const tooltip = document.getElementById('tooltip');
-                tooltip.style.display = 'none'; // Hide the tooltip
-                clearTimeout(tooltipTimeout);
-            };
-
-            const img = document.createElement('img');
-            img.src = streamer.streamer_icon;
-            img.alt = streamer.streamer_name;
-
-            const nameDiv = document.createElement('div');
-            nameDiv.className = 'streamer-name ' + (streamer.live_status === 1 ? 'live' : 'not-streaming');
-            nameDiv.textContent = streamer.streamer_name;
-
-            const medalDiv = document.createElement('div');
-            medalDiv.className = 'medal-level';
-            medalDiv.textContent = `${streamer.medal_name} (Level ${streamer.medal_level})`;
-
-            if (streamer.live_status === 1) {
-                const liveBadge = document.createElement('div');
-                liveBadge.className = 'live-badge';
-                liveBadge.textContent = 'Live';
-                
-                if (newlyStreaming.includes(streamer.uid)) {
-                    liveBadge.classList.add('new-live');
-                }
-                
-                iconDiv.appendChild(liveBadge);
-            }
-
-            if (favoriteStreamers.includes(streamer.uid)) {
-                addFavoriteStar(iconDiv);
-            }
-
-            iconDiv.appendChild(img);
-            iconDiv.appendChild(nameDiv);
-            iconDiv.appendChild(medalDiv);
-            container.appendChild(iconDiv);
-        });
+        const sortedStreamers = sortStreamers(streamersList, favoriteStreamers);
+        renderStreamers(sortedStreamers, deletedStreamers, favoriteStreamers, newlyStreaming);
+        handleNewStreamers(newlyStreaming);
 
         console.log('Streamers info loaded successfully at:', new Date().toLocaleString());
-        
-        // Clear new streamers list after popup is opened
-        if (document.visibilityState === 'visible') {
-            console.log('Popup showed, Removing newlyStreaming', new Date().toLocaleString())
-            chrome.action.setBadgeText({ text: '' });
-            chrome.storage.local.set({'newlyStreaming': []});
-        }
-
     } catch (error) {
         showError(error.message);
     }
 }
+
 
 
 
@@ -711,17 +791,6 @@ function removeFavoriteStar(iconDiv) {
 
 
 
-/*
-// Add visibility change listener to clear badge when popup is opened
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-        console.log('Popup showed, Removing newlyStreaming', new Date().toLocaleString())
-        chrome.action.setBadgeText({ text: '' });
-        chrome.storage.local.set({'newlyStreaming': []});
-    }
-});
-*/
-
 
 
 
@@ -782,9 +851,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 
-    // Initialize notification button
+    // Initialize notification button with default state 2
     chrome.storage.local.get('notification', (result) => {
-        const notificationState = result.notification || 0;
+        const notificationState = result.notification !== undefined ? result.notification : 2; // Default to 2
         updateNotificationButton(notificationState);
     });
 
