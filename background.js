@@ -164,6 +164,7 @@ async function updateBadgeForNewStreamers(streamingInfo) {
             }
         } else {
             console.log('No new streamers detected at:', new Date().toLocaleString());
+            chrome.action.setBadgeText({ text: '' });
         }
 
         // Update newly streaming and previous streamers in storage
