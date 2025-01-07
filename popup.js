@@ -441,7 +441,7 @@ function handleTooltipHover(event, streamer) {
                     const isPortrait = roomInfo.data.keyframe.height > roomInfo.data.keyframe.width;
 
                     // 低清图片 URL（缩略图）
-                    const lowResImageUrl = `${roomInfo.data.keyframe}@200w_200h`;
+                    const lowResImageUrl = `${roomInfo.data.keyframe}@50w_50h`;
                     // 高清图片 URL（原图或高分辨率图）
                     const highResImageUrl = roomInfo.data.keyframe;
 
@@ -475,7 +475,7 @@ function handleTooltipHover(event, streamer) {
                             console.error('Failed to load high-resolution image.');
                         };
                     }
-                }, 220); // 220ms 延迟
+                }, 250); // 250ms 延迟
             } catch (error) {
                 console.error('Error fetching room info:', error);
             }
