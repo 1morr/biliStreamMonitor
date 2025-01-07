@@ -415,6 +415,7 @@ async function fetchRoomInfo(roomid) {
     return data;
 }
 
+
 // 处理鼠标悬停事件，显示 tooltip
 function handleTooltipHover(event, streamer) {
     let tooltipTimeout;
@@ -433,15 +434,41 @@ function handleTooltipHover(event, streamer) {
                     const elapsedTime = Date.now() - startTime.getTime();
                     const duration = formatDuration(elapsedTime);
 
-                    const tooltipContent = `
-                        <div class="tooltip-content">
-                            <img class="tooltip-image" src="${roomInfo.data.keyframe}" alt="${roomInfo.data.title}">
-                            <div class="live-time">${duration}</div>
-                            <div class="tooltip-title">${roomInfo.data.title}</div>
-                        </div>
-                    `;
+                    // 获取原始图片 URL
+                    const originalImageUrl = roomInfo.data.keyframe;
 
-                    showTooltip(event, tooltipContent);
+                    // 先加载原始图片，检测宽高比
+                    const originalImg = new Image();
+                    originalImg.src = originalImageUrl;
+
+                    originalImg.onload = () => {
+                        // 检测图片是纵向还是横向
+                        const isPortrait = originalImg.height > originalImg.width;
+
+                        // 使用 canvas 压缩图片
+                        compressImage(originalImageUrl, 200, 200).then((compressedImageUrl) => {
+                            // 显示低分辨率图片
+                            const tooltipContent = `
+                                <div class="tooltip-content ${isPortrait ? 'portrait' : 'landscape'}">
+                                    <img class="tooltip-image" src="${compressedImageUrl}" data-src="${originalImageUrl}" alt="${roomInfo.data.title}">
+                                    <div class="live-time">${duration}</div>
+                                    <div class="tooltip-title">${roomInfo.data.title}</div>
+                                </div>
+                            `;
+                            showTooltip(event, tooltipContent);
+
+                            // 加载高分辨率图片
+                            const highResImg = new Image();
+                            highResImg.src = originalImageUrl;
+                            highResImg.onload = () => {
+                                // 替换为高分辨率图片
+                                const tooltipImage = document.querySelector('#tooltip .tooltip-image');
+                                if (tooltipImage) {
+                                    tooltipImage.src = originalImageUrl;
+                                }
+                            };
+                        });
+                    };
                 } catch (error) {
                     console.error('Error fetching room info:', error);
                 }
@@ -458,6 +485,35 @@ function handleTooltipHover(event, streamer) {
     event.target.onmousedown = () => {
         clearTimeout(tooltipTimeout);
     };
+}
+
+// 使用 canvas 压缩图片
+function compressImage(imageUrl, width, height) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous"; // 解决跨域问题
+        img.src = imageUrl;
+
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // 设置 canvas 尺寸
+            canvas.width = width;
+            canvas.height = height;
+
+            // 绘制压缩后的图片
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // 将 canvas 转换为 Data URL（JPEG 格式，质量为 0.7）
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            resolve(compressedDataUrl);
+        };
+
+        img.onerror = (error) => {
+            reject(error);
+        };
+    });
 }
 
 // 在 createStreamerIcon 中调用 handleTooltipHover
