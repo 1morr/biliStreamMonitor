@@ -425,95 +425,69 @@ function handleTooltipHover(event, streamer) {
 
     event.target.onmouseenter = async () => {
         if (streamer.live_status === 1) {
-            tooltipTimeout = setTimeout(async () => {
-                try {
-                    const roomid = streamer.link.split('//')[1].split('/')[1].split('?')[0];
-                    const roomInfo = await fetchRoomInfo(roomid);
+            try {
+                // 获取 roomid
+                const roomid = streamer.link.split('//')[1].split('/')[1].split('?')[0];
+                // 获取房间信息
+                const roomInfo = await fetchRoomInfo(roomid);
 
+                // 设置 220ms 延迟显示 tooltip
+                tooltipTimeout = setTimeout(() => {
                     const startTime = new Date(roomInfo.data.live_time.replace(/ /, 'T'));
                     const elapsedTime = Date.now() - startTime.getTime();
                     const duration = formatDuration(elapsedTime);
 
-                    // 获取原始图片 URL
-                    const originalImageUrl = roomInfo.data.keyframe;
+                    // 判断图片是竖屏还是横屏
+                    const isPortrait = roomInfo.data.keyframe.height > roomInfo.data.keyframe.width;
 
-                    // 先加载原始图片，检测宽高比
-                    const originalImg = new Image();
-                    originalImg.src = originalImageUrl;
+                    // 低清图片 URL（缩略图）
+                    const lowResImageUrl = `${roomInfo.data.keyframe}@200w_200h`;
+                    // 高清图片 URL（原图或高分辨率图）
+                    const highResImageUrl = roomInfo.data.keyframe;
 
-                    originalImg.onload = () => {
-                        // 检测图片是纵向还是横向
-                        const isPortrait = originalImg.height > originalImg.width;
+                    // 生成 tooltip 内容
+                    const tooltipContent = `
+                        <div class="tooltip-content ${isPortrait ? 'portrait' : 'landscape'}">
+                            <img class="tooltip-image" src="${lowResImageUrl}" alt="${roomInfo.data.title}" data-highres="${highResImageUrl}">
+                            <div class="live-time">${duration}</div>
+                            <div class="tooltip-title">${roomInfo.data.title}</div>
+                        </div>
+                    `;
 
-                        // 使用 canvas 压缩图片
-                        compressImage(originalImageUrl, 200, 200).then((compressedImageUrl) => {
-                            // 显示低分辨率图片
-                            const tooltipContent = `
-                                <div class="tooltip-content ${isPortrait ? 'portrait' : 'landscape'}">
-                                    <img class="tooltip-image" src="${compressedImageUrl}" data-src="${originalImageUrl}" alt="${roomInfo.data.title}">
-                                    <div class="live-time">${duration}</div>
-                                    <div class="tooltip-title">${roomInfo.data.title}</div>
-                                </div>
-                            `;
-                            showTooltip(event, tooltipContent);
+                    // 显示 tooltip
+                    showTooltip(event, tooltipContent);
 
-                            // 加载高分辨率图片
-                            const highResImg = new Image();
-                            highResImg.src = originalImageUrl;
-                            highResImg.onload = () => {
-                                // 替换为高分辨率图片
-                                const tooltipImage = document.querySelector('#tooltip .tooltip-image');
-                                if (tooltipImage) {
-                                    tooltipImage.src = originalImageUrl;
-                                }
-                            };
-                        });
-                    };
-                } catch (error) {
-                    console.error('Error fetching room info:', error);
-                }
-            }, 220); // 0.22 秒延迟
+                    // 获取 tooltip 中的图片元素
+                    const tooltipImage = document.querySelector('.tooltip-content .tooltip-image');
+
+                    // 加载高清图片
+                    if (tooltipImage) {
+                        const highResImage = new Image();
+                        highResImage.src = tooltipImage.dataset.highres;
+
+                        // 当高清图片加载完成后，替换低清图片
+                        highResImage.onload = () => {
+                            tooltipImage.src = highResImage.src;
+                        };
+
+                        // 如果高清图片加载失败，保留低清图片
+                        highResImage.onerror = () => {
+                            console.error('Failed to load high-resolution image.');
+                        };
+                    }
+                }, 220); // 220ms 延迟
+            } catch (error) {
+                console.error('Error fetching room info:', error);
+            }
         }
     };
 
     event.target.onmouseleave = () => {
+        // 清除延迟显示 tooltip 的定时器
         clearTimeout(tooltipTimeout);
+        // 隐藏 tooltip
         hideTooltip();
     };
-
-    // 添加 onmousedown 事件处理程序
-    event.target.onmousedown = () => {
-        clearTimeout(tooltipTimeout);
-    };
-}
-
-// 使用 canvas 压缩图片
-function compressImage(imageUrl, width, height) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = "Anonymous"; // 解决跨域问题
-        img.src = imageUrl;
-
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-
-            // 设置 canvas 尺寸
-            canvas.width = width;
-            canvas.height = height;
-
-            // 绘制压缩后的图片
-            ctx.drawImage(img, 0, 0, width, height);
-
-            // 将 canvas 转换为 Data URL（JPEG 格式，质量为 0.7）
-            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-            resolve(compressedDataUrl);
-        };
-
-        img.onerror = (error) => {
-            reject(error);
-        };
-    });
 }
 
 // 在 createStreamerIcon 中调用 handleTooltipHover
