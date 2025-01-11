@@ -420,32 +420,37 @@ async function fetchRoomInfo(roomid) {
 function handleTooltipHover(event, streamer) {
     let tooltipTimeout;
 
-    // 确保事件目标是 img 元素
+    // 確保事件目標是 img 元素
     if (event.target.tagName.toLowerCase() !== 'img') return;
 
+    // 鼠標進入圖標時
     event.target.onmouseenter = async () => {
         if (streamer.live_status === 1) {
-            try {
-                // 获取 roomid
-                const roomid = streamer.link.split('//')[1].split('/')[1].split('?')[0];
-                // 获取房间信息
-                const roomInfo = await fetchRoomInfo(roomid);
+            // 清除之前的 timeout
+            clearTimeout(tooltipTimeout);
+            hideTooltip();
 
-                // 设置 220ms 延迟显示 tooltip
-                tooltipTimeout = setTimeout(() => {
+            // 設置新的 timeout
+            tooltipTimeout = setTimeout(async () => {
+                try {
+                    // 獲取 roomid
+                    const roomid = streamer.link.split('//')[1].split('/')[1].split('?')[0];
+                    // 獲取房間信息
+                    const roomInfo = await fetchRoomInfo(roomid);
+
                     const startTime = new Date(roomInfo.data.live_time.replace(/ /, 'T'));
                     const elapsedTime = Date.now() - startTime.getTime();
                     const duration = formatDuration(elapsedTime);
 
-                    // 判断图片是竖屏还是横屏
+                    // 判斷圖片是豎屏還是橫屏
                     const isPortrait = roomInfo.data.keyframe.height > roomInfo.data.keyframe.width;
 
-                    // 低清图片 URL（缩略图）
+                    // 低清圖片 URL（縮略圖）
                     const lowResImageUrl = `${roomInfo.data.keyframe}@50w_50h`;
-                    // 高清图片 URL（原图或高分辨率图）
+                    // 高清圖片 URL（原圖或高分辨率圖）
                     const highResImageUrl = roomInfo.data.keyframe;
 
-                    // 生成 tooltip 内容
+                    // 生成 tooltip 內容
                     const tooltipContent = `
                         <div class="tooltip-content ${isPortrait ? 'portrait' : 'landscape'}">
                             <img class="tooltip-image" src="${lowResImageUrl}" alt="${roomInfo.data.title}" data-highres="${highResImageUrl}">
@@ -454,38 +459,39 @@ function handleTooltipHover(event, streamer) {
                         </div>
                     `;
 
-                    // 显示 tooltip
+                    // 顯示 tooltip
                     showTooltip(event, tooltipContent);
 
-                    // 获取 tooltip 中的图片元素
+                    // 獲取 tooltip 中的圖片元素
                     const tooltipImage = document.querySelector('.tooltip-content .tooltip-image');
 
-                    // 加载高清图片
+                    // 加載高清圖片
                     if (tooltipImage) {
                         const highResImage = new Image();
                         highResImage.src = tooltipImage.dataset.highres;
 
-                        // 当高清图片加载完成后，替换低清图片
+                        // 當高清圖片加載完成後，替換低清圖片
                         highResImage.onload = () => {
                             tooltipImage.src = highResImage.src;
                         };
 
-                        // 如果高清图片加载失败，保留低清图片
+                        // 如果高清圖片加載失敗，保留低清圖片
                         highResImage.onerror = () => {
                             console.error('Failed to load high-resolution image.');
                         };
                     }
-                }, 250); // 250ms 延迟
-            } catch (error) {
-                console.error('Error fetching room info:', error);
-            }
+                } catch (error) {
+                    console.error('Error fetching room info:', error);
+                }
+            }, 250); // 250ms 延遲
         }
     };
 
+    // 鼠標離開圖標時
     event.target.onmouseleave = () => {
-        // 清除延迟显示 tooltip 的定时器
+        // 清除 timeout
         clearTimeout(tooltipTimeout);
-        // 隐藏 tooltip
+        // 隱藏 tooltip
         hideTooltip();
     };
 }
