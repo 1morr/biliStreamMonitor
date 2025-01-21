@@ -21,6 +21,12 @@
             "128": "images/icon128.png"
         }
     },
+    "web_accessible_resources": [
+        {
+        "resources": ["images/NA.png"],
+        "matches": ["<all_urls>"]
+        }
+    ],
     "background": {
         "service_worker": "background.js"
     },
