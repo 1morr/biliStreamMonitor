@@ -416,6 +416,20 @@ async function fetchRoomInfo(roomid) {
 }
 
 
+// Load the NA.png image
+async function loadNAPicture() {
+    const response = await fetch('images/NA.png'); // Replace with the actual path to NA.png
+    if (!response.ok) {
+        throw new Error(`Failed to fetch NA.png: ${response.status} ${response.statusText}`);
+    }
+    return response.blob();
+}
+
+// Function to show the NA.png image when the original image fails to load
+function showNAPicture(tooltipImage) {
+    tooltipImage.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQICh8G7JgAAAAABJRU5ErkJggg=='; // Base64 encoded NA.png
+}
+
 // 处理鼠标悬停事件，显示 tooltip
 function handleTooltipHover(event, streamer) {
     let tooltipTimeout;
@@ -475,9 +489,12 @@ function handleTooltipHover(event, streamer) {
                             tooltipImage.src = highResImage.src;
                         };
 
-                        // 如果高清圖片加載失敗，保留低清圖片
-                        highResImage.onerror = () => {
+                        // 如果高清圖片加載失敗，顯示 NA.png
+                        highResImage.onerror = async () => {
                             console.error('Failed to load high-resolution image.');
+                            const naBlob = await loadNAPicture();
+                            const naUrl = URL.createObjectURL(naBlob);
+                            tooltipImage.src = naUrl;
                         };
                     }
                 } catch (error) {
