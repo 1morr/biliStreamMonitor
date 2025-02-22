@@ -456,13 +456,33 @@ function handleTooltipHover(event, streamer) {
                     const elapsedTime = Date.now() - startTime.getTime();
                     const duration = formatDuration(elapsedTime);
 
-                    // 判斷圖片是豎屏還是橫屏
-                    const isPortrait = roomInfo.data.keyframe.height > roomInfo.data.keyframe.width;
-
                     // 低清圖片 URL（縮略圖）
                     const lowResImageUrl = `${roomInfo.data.keyframe}@50w_50h`;
                     // 高清圖片 URL（原圖或高分辨率圖）
                     const highResImageUrl = roomInfo.data.keyframe;
+
+                    // 方法 1: 从 URL 解析尺寸 (如果存在格式如 /widthxheight/)
+                    let isPortrait = false;
+                    const sizeMatch = highResImageUrl.match(/\/(\d+)x(\d+)\//);
+                    if (sizeMatch) {
+                        const width = parseInt(sizeMatch[1], 10);
+                        const height = parseInt(sizeMatch[2], 10);
+                        isPortrait = height > width;
+                    } else {
+                        // 方法 2: 动态加载图片获取真实尺寸
+                        isPortrait = await new Promise((resolve) => {
+                        const img = new Image();
+                        img.crossOrigin = "Anonymous";
+                        img.src = highResImageUrl;
+                        img.onload = () => {
+                            resolve(img.naturalHeight > img.naturalWidth);
+                        };
+                        img.onerror = () => resolve(false);
+                        });
+                    }
+
+                    console.log('最终方向判断:', isPortrait ? '竖屏' : '横屏');
+
 
                     // 生成 tooltip 內容
                     const tooltipContent = `
