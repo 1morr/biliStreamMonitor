@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "biliStreamMonitor22",
+    "name": "biliStreamMonitor",
     "version": "1.0",
     "description": "Monitor bilibili streamers based on your medal wall",
     "permissions": [
