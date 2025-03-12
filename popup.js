@@ -433,103 +433,146 @@ function showNAPicture(tooltipImage) {
 // 处理鼠标悬停事件，显示 tooltip
 function handleTooltipHover(event, streamer) {
     let tooltipTimeout;
+    let cachedRoomInfo = null;
+    let preloadedImage = null;
 
-    // 確保事件目標是 img 元素
+    // Ensure event target is an img element
     if (event.target.tagName.toLowerCase() !== 'img') return;
 
-    // 鼠標進入圖標時
+    // Preload room info and image when mouse is near the icon (before hovering)
+    event.target.addEventListener('mouseover', () => {
+        if (streamer.live_status === 1 && !cachedRoomInfo) {
+            // Start preloading in background
+            preloadRoomInfoAndImage(streamer).then(result => {
+                cachedRoomInfo = result.roomInfo;
+                preloadedImage = result.image;
+            }).catch(error => {
+                console.error('Error preloading room info:', error);
+            });
+        }
+    });
+
+    // Mouse enters the icon
     event.target.onmouseenter = async () => {
         if (streamer.live_status === 1) {
-            // 清除之前的 timeout
+            // Clear previous timeout
             clearTimeout(tooltipTimeout);
             hideTooltip();
 
-            // 設置新的 timeout
+            // Set new timeout with reduced delay since we're preloading
             tooltipTimeout = setTimeout(async () => {
                 try {
-                    // 獲取 roomid
-                    const roomid = streamer.link.split('//')[1].split('/')[1].split('?')[0];
-                    // 獲取房間信息
-                    const roomInfo = await fetchRoomInfo(roomid);
+                    let roomInfo, isImageLoaded = false;
+                    
+                    // Use cached data if available, otherwise fetch it
+                    if (cachedRoomInfo) {
+                        roomInfo = cachedRoomInfo;
+                        isImageLoaded = !!preloadedImage;
+                    } else {
+                        const result = await preloadRoomInfoAndImage(streamer);
+                        roomInfo = result.roomInfo;
+                        preloadedImage = result.image;
+                        isImageLoaded = !!preloadedImage;
+                    }
 
                     const startTime = new Date(roomInfo.data.live_time.replace(/ /, 'T'));
                     const elapsedTime = Date.now() - startTime.getTime();
                     const duration = formatDuration(elapsedTime);
 
-                    // 低清圖片 URL（縮略圖）
-                    const lowResImageUrl = `${roomInfo.data.keyframe}@50w_50h`;
-                    // 高清圖片 URL（原圖或高分辨率圖）
-                    const highResImageUrl = roomInfo.data.keyframe;
-
-                    // 方法 1: 从 URL 解析尺寸 (如果存在格式如 /widthxheight/)
+                    // Determine image orientation
                     let isPortrait = false;
-                    const sizeMatch = highResImageUrl.match(/\/(\d+)x(\d+)\//);
-                    if (sizeMatch) {
-                        const width = parseInt(sizeMatch[1], 10);
-                        const height = parseInt(sizeMatch[2], 10);
-                        isPortrait = height > width;
+                    if (preloadedImage) {
+                        isPortrait = preloadedImage.naturalHeight > preloadedImage.naturalWidth;
                     } else {
-                        // 方法 2: 动态加载图片获取真实尺寸
-                        isPortrait = await new Promise((resolve) => {
-                        const img = new Image();
-                        img.crossOrigin = "Anonymous";
-                        img.src = highResImageUrl;
-                        img.onload = () => {
-                            resolve(img.naturalHeight > img.naturalWidth);
-                        };
-                        img.onerror = () => resolve(false);
-                        });
+                        // Fallback to URL parsing if image isn't loaded yet
+                        const highResImageUrl = roomInfo.data.keyframe;
+                        const sizeMatch = highResImageUrl.match(/\/(\d+)x(\d+)\//);
+                        if (sizeMatch) {
+                            const width = parseInt(sizeMatch[1], 10);
+                            const height = parseInt(sizeMatch[2], 10);
+                            isPortrait = height > width;
+                        }
                     }
 
-                    console.log('最终方向判断:', isPortrait ? '竖屏' : '横屏');
+                    console.log('Image orientation:', isPortrait ? 'portrait' : 'landscape');
 
-
-                    // 生成 tooltip 內容
+                    // Generate tooltip content
                     const tooltipContent = `
                         <div class="tooltip-content ${isPortrait ? 'portrait' : 'landscape'}">
-                            <img class="tooltip-image" src="${lowResImageUrl}" alt="${roomInfo.data.title}" data-highres="${highResImageUrl}">
+                            <img class="tooltip-image" src="${isImageLoaded ? preloadedImage.src : `${roomInfo.data.keyframe}@50w_50h`}" 
+                                 alt="${roomInfo.data.title}" 
+                                 data-highres="${roomInfo.data.keyframe}">
                             <div class="live-time">${duration}</div>
                             <div class="tooltip-title">${roomInfo.data.title}</div>
                         </div>
                     `;
 
-                    // 顯示 tooltip
+                    // Show tooltip
                     showTooltip(event, tooltipContent);
 
-                    // 獲取 tooltip 中的圖片元素
+                    // Get tooltip image element
                     const tooltipImage = document.querySelector('.tooltip-content .tooltip-image');
 
-                    // 加載高清圖片
-                    if (tooltipImage) {
-                        const highResImage = new Image();
-                        highResImage.src = tooltipImage.dataset.highres;
+                    // If we haven't already loaded the high-res image, load it now
+                    if (tooltipImage && !isImageLoaded) {
+                        const highResImage = preloadedImage || new Image();
+                        if (!preloadedImage) {
+                            highResImage.src = tooltipImage.dataset.highres;
+                        }
 
-                        // 當高清圖片加載完成後，替換低清圖片
+                        // When high-res image loads, replace low-res image
                         highResImage.onload = () => {
                             tooltipImage.src = highResImage.src;
                         };
 
-                        // 如果高清圖片加載失敗，顯示 NA.png
+                        // If high-res image fails, show NA.png
                         highResImage.onerror = async () => {
                             console.error('Failed to load high-resolution image.');
-                            const naBlob = await loadNAPicture();
-                            const naUrl = URL.createObjectURL(naBlob);
-                            tooltipImage.src = naUrl;
+                            try {
+                                const naBlob = await loadNAPicture();
+                                const naUrl = URL.createObjectURL(naBlob);
+                                tooltipImage.src = naUrl;
+                            } catch (err) {
+                                console.error('Failed to load NA picture:', err);
+                            }
                         };
                     }
                 } catch (error) {
-                    console.error('Error fetching room info:', error);
+                    console.error('Error showing tooltip:', error);
                 }
-            }, 250); // 250ms 延遲
+            }, 100); // Reduced delay from 200ms to 100ms
         }
     };
 
-    // 鼠標離開圖標時
+    // Mouse leaves the icon
     event.target.onmouseleave = () => {
-        // 清除 timeout
         clearTimeout(tooltipTimeout);
-        // 隱藏 tooltip
         hideTooltip();
+    };
+}
+
+// Helper function to preload room info and image
+async function preloadRoomInfoAndImage(streamer) {
+    // Get roomid
+    const roomid = streamer.link.split('//')[1].split('/')[1].split('?')[0];
+    
+    // Get room info
+    const roomInfo = await fetchRoomInfo(roomid);
+    
+    // Start preloading the image
+    const image = new Image();
+    image.crossOrigin = "Anonymous";
+    image.src = roomInfo.data.keyframe;
+    
+    // Return both the room info and a promise for the image
+    return {
+        roomInfo,
+        image: image.complete ? image : await new Promise((resolve, reject) => {
+            image.onload = () => resolve(image);
+            image.onerror = () => resolve(null); // Resolve with null on error
+            // Add a timeout to prevent hanging
+            setTimeout(() => resolve(null), 3000);
+        })
     };
 }
 
