@@ -418,16 +418,36 @@ async function fetchRoomInfo(roomid) {
 
 // Load the NA.png image
 async function loadNAPicture() {
-    const response = await fetch('images/NA.png'); // Replace with the actual path to NA.png
-    if (!response.ok) {
-        throw new Error(`Failed to fetch NA.png: ${response.status} ${response.statusText}`);
+    try {
+        // 使用相对路径，确保路径正确
+        const response = await fetch(chrome.runtime.getURL('images/NA.png'));
+        if (!response.ok) {
+            throw new Error(`Failed to fetch NA.png: ${response.status} ${response.statusText}`);
+        }
+        return URL.createObjectURL(await response.blob());
+    } catch (error) {
+        console.error('Error loading NA image:', error);
+        // 如果加载失败，返回一个简单的占位符URL
+        return 'images/NA.png';
     }
-    return response.blob();
 }
 
 // Function to show the NA.png image when the original image fails to load
 function showNAPicture(tooltipImage) {
-    tooltipImage.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQICh8G7JgAAAAABJRU5ErkJggg=='; // Base64 encoded NA.png
+    // 使用chrome.runtime.getURL获取扩展内资源的完整URL
+    tooltipImage.src = chrome.runtime.getURL('images/NA.png');
+    
+    // 添加错误处理，以防NA.png也无法加载
+    tooltipImage.onerror = () => {
+        console.error('Failed to load NA.png fallback image');
+        // 设置一些样式，使空图片区域可见
+        tooltipImage.style.width = '100%';
+        tooltipImage.style.height = 'auto';
+        tooltipImage.style.minHeight = '120px';
+        tooltipImage.style.backgroundColor = '#f0f0f0';
+        tooltipImage.style.border = '1px solid #ccc';
+        tooltipImage.alt = '图片无法加载';
+    };
 }
 
 // 处理鼠标悬停事件，显示 tooltip
@@ -513,6 +533,14 @@ function handleTooltipHover(event, streamer) {
                     // Get tooltip image element
                     const tooltipImage = document.querySelector('.tooltip-content .tooltip-image');
 
+                    // 为图片添加错误处理
+                    if (tooltipImage) {
+                        tooltipImage.onerror = () => {
+                            console.error('Failed to load thumbnail image');
+                            showNAPicture(tooltipImage);
+                        };
+                    }
+
                     // If we haven't already loaded the high-res image, load it now
                     if (tooltipImage && !isImageLoaded) {
                         const highResImage = preloadedImage || new Image();
@@ -528,13 +556,7 @@ function handleTooltipHover(event, streamer) {
                         // If high-res image fails, show NA.png
                         highResImage.onerror = async () => {
                             console.error('Failed to load high-resolution image.');
-                            try {
-                                const naBlob = await loadNAPicture();
-                                const naUrl = URL.createObjectURL(naBlob);
-                                tooltipImage.src = naUrl;
-                            } catch (err) {
-                                console.error('Failed to load NA picture:', err);
-                            }
+                            showNAPicture(tooltipImage);
                         };
                     }
                 } catch (error) {
