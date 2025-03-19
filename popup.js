@@ -267,28 +267,6 @@ function removeError() {
 
 
 
-async function getRoomInfo(roomid) {
-    console.log('Getting Room Info at', new Date().toLocaleString())
-    const url = `https://api.live.bilibili.com/room/v1/Room/get_info?room_id=${roomid}`;
-    const response = await fetch(url, {
-        headers: headers,
-        credentials: 'include'
-    });
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch thumbnail: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    if (data.code !== 0) {
-        throw new Error(`API Error: ${data.message || 'Unknown error'}`);
-    }
-
-    console.log(data);
-    return data;
-}
-
-
 
 // Function to format the duration
 function formatDuration(milliseconds) {
@@ -536,8 +514,19 @@ function handleTooltipHover(event, streamer) {
                     // 为图片添加错误处理
                     if (tooltipImage) {
                         tooltipImage.onerror = () => {
-                            console.error('Failed to load thumbnail image');
-                            showNAPicture(tooltipImage);
+                            console.error('Failed to load thumbnail image, trying user_cover');
+                            // Try to use user_cover as fallback
+                            const userCoverImage = new Image();
+                            userCoverImage.src = roomInfo.data.user_cover;
+                            
+                            userCoverImage.onload = () => {
+                                tooltipImage.src = userCoverImage.src;
+                            };
+                            
+                            userCoverImage.onerror = () => {
+                                console.error('Failed to load user_cover image, showing NA.png');
+                                showNAPicture(tooltipImage);
+                            };
                         };
                     }
 
@@ -553,10 +542,21 @@ function handleTooltipHover(event, streamer) {
                             tooltipImage.src = highResImage.src;
                         };
 
-                        // If high-res image fails, show NA.png
+                        // If high-res image fails, try user_cover before showing NA.png
                         highResImage.onerror = async () => {
-                            console.error('Failed to load high-resolution image.');
-                            showNAPicture(tooltipImage);
+                            console.error('Failed to load high-resolution image, trying user_cover');
+                            // Try to use user_cover as fallback
+                            const userCoverImage = new Image();
+                            userCoverImage.src = roomInfo.data.user_cover;
+                            
+                            userCoverImage.onload = () => {
+                                tooltipImage.src = userCoverImage.src;
+                            };
+                            
+                            userCoverImage.onerror = () => {
+                                console.error('Failed to load user_cover image, showing NA.png');
+                                showNAPicture(tooltipImage);
+                            };
                         };
                     }
                 } catch (error) {
@@ -581,7 +581,7 @@ async function preloadRoomInfoAndImage(streamer) {
     // Get room info
     const roomInfo = await fetchRoomInfo(roomid);
     
-    // Start preloading the image
+    // Start preloading the image, use keyframe first, fallback to user_cover if keyframe fails
     const image = new Image();
     image.crossOrigin = "Anonymous";
     image.src = roomInfo.data.keyframe;
@@ -591,7 +591,18 @@ async function preloadRoomInfoAndImage(streamer) {
         roomInfo,
         image: image.complete ? image : await new Promise((resolve, reject) => {
             image.onload = () => resolve(image);
-            image.onerror = () => resolve(null); // Resolve with null on error
+            image.onerror = () => {
+                // If keyframe fails, try user_cover
+                console.log('Keyframe failed to load, trying user_cover');
+                const fallbackImage = new Image();
+                fallbackImage.crossOrigin = "Anonymous";
+                fallbackImage.src = roomInfo.data.user_cover;
+                
+                fallbackImage.onload = () => resolve(fallbackImage);
+                fallbackImage.onerror = () => resolve(null); // Resolve with null if both fail
+                // Add a timeout to prevent hanging
+                setTimeout(() => resolve(null), 3000);
+            };
             // Add a timeout to prevent hanging
             setTimeout(() => resolve(null), 3000);
         })
