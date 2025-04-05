@@ -335,36 +335,52 @@ function renderStreamers(sortedStreamers, deletedStreamers, favoriteStreamers, n
 // 显示 tooltip
 function showTooltip(event, content) {
     const tooltip = document.getElementById('tooltip');
+    
+    // 先设置内容但不显示
     tooltip.innerHTML = content;
+    
+    // 先将tooltip放在屏幕外，避免闪烁
+    tooltip.style.left = '-9999px';
+    tooltip.style.top = '0';
     tooltip.style.display = 'block';
+    tooltip.style.opacity = '0';
+    
+    // 使用requestAnimationFrame确保DOM更新后再计算位置
+    requestAnimationFrame(() => {
+        // 计算 tooltip 的位置
+        const iconRect = event.target.getBoundingClientRect(); // 获取图标的边界信息
+        const tooltipWidth = tooltip.offsetWidth; // 获取 tooltip 的宽度
+        const tooltipHeight = tooltip.offsetHeight; // 获取 tooltip 的高度
 
-    // 计算 tooltip 的位置
-    const iconRect = event.target.getBoundingClientRect(); // 获取图标的边界信息
-    const tooltipWidth = tooltip.offsetWidth; // 获取 tooltip 的宽度
-    const tooltipHeight = tooltip.offsetHeight; // 获取 tooltip 的高度
+        // 将 tooltip 显示在图标正下方
+        let left = iconRect.left + (iconRect.width / 2) - (tooltipWidth / 2); // 图标水平中心 - tooltip 宽度的一半
+        let top = iconRect.bottom + 10; // 图标底部 + 10px
 
-    // 将 tooltip 显示在图标正下方
-    let left = iconRect.left + (iconRect.width / 2) - (tooltipWidth / 2); // 图标水平中心 - tooltip 宽度的一半
-    let top = iconRect.bottom + 10; // 图标底部 + 10px
+        // 如果 tooltip 超出窗口右侧，则向左调整
+        if (left + tooltipWidth > window.innerWidth) {
+            left = window.innerWidth - tooltipWidth - 10; // 窗口右侧 - tooltip 宽度 - 10px
+        }
 
-    // 如果 tooltip 超出窗口右侧，则向左调整
-    if (left + tooltipWidth > window.innerWidth) {
-        left = window.innerWidth - tooltipWidth - 10; // 窗口右侧 - tooltip 宽度 - 10px
-    }
+        // 如果 tooltip 超出窗口左侧，则向右调整
+        if (left < 0) {
+            left = 10; // 窗口左侧 + 10px
+        }
 
-    // 如果 tooltip 超出窗口左侧，则向右调整
-    if (left < 0) {
-        left = 10; // 窗口左侧 + 10px
-    }
+        // 如果 tooltip 超出窗口底部，则显示在图标上方
+        if (top + tooltipHeight > window.innerHeight) {
+            top = iconRect.top - tooltipHeight - 10; // 图标顶部 - tooltip 高度 - 10px
+        }
 
-    // 如果 tooltip 超出窗口底部，则显示在图标上方
-    if (top + tooltipHeight > window.innerHeight) {
-        top = iconRect.top - tooltipHeight - 10; // 图标顶部 - tooltip 高度 - 10px
-    }
-
-    // 设置 tooltip 的位置
-    tooltip.style.left = `${left}px`;
-    tooltip.style.top = `${top}px`;
+        // 设置 tooltip 的位置
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+        
+        // 平滑显示tooltip
+        requestAnimationFrame(() => {
+            tooltip.style.opacity = '1';
+            tooltip.style.transition = 'opacity 0.2s ease-in-out';
+        });
+    });
 }
 
 // 隐藏 tooltip
@@ -395,218 +411,437 @@ async function fetchRoomInfo(roomid) {
 
 
 // Load the NA.png image
+// 缓存NA图片，避免重复加载
+let cachedNAImage = null;
+
 async function loadNAPicture() {
+    // 如果已经缓存了NA图片，直接返回
+    if (cachedNAImage) {
+        return cachedNAImage;
+    }
+    
     try {
-        // 使用相对路径，确保路径正确
-        const response = await fetch(chrome.runtime.getURL('images/NA.png'));
+        // 使用chrome.runtime.getURL获取扩展内资源的完整URL
+        const naImageURL = chrome.runtime.getURL('images/NA.png');
+        const response = await fetch(naImageURL);
         if (!response.ok) {
             throw new Error(`Failed to fetch NA.png: ${response.status} ${response.statusText}`);
         }
-        return URL.createObjectURL(await response.blob());
+        
+        // 创建Blob URL并缓存
+        cachedNAImage = URL.createObjectURL(await response.blob());
+        return cachedNAImage;
     } catch (error) {
         console.error('Error loading NA image:', error);
         // 如果加载失败，返回一个简单的占位符URL
-        return 'images/NA.png';
+        return chrome.runtime.getURL('images/NA.png');
     }
 }
 
 // Function to show the NA.png image when the original image fails to load
 function showNAPicture(tooltipImage) {
-    // 使用chrome.runtime.getURL获取扩展内资源的完整URL
-    tooltipImage.src = chrome.runtime.getURL('images/NA.png');
+    // 先设置占位图样式，避免显示丢失图标
+    tooltipImage.style.width = '100%';
+    tooltipImage.style.height = 'auto';
+    tooltipImage.style.minHeight = '120px';
+    tooltipImage.style.backgroundColor = '#f0f0f0';
+    tooltipImage.style.border = '1px solid #ccc';
+    tooltipImage.style.opacity = '0';
+    tooltipImage.style.transition = 'opacity 0.3s ease-in';
+    tooltipImage.alt = '加载中...';
+    
+    // 预加载NA.png图片
+    const naImage = new Image();
+    naImage.src = chrome.runtime.getURL('images/NA.png');
+    
+    naImage.onload = () => {
+        // 图片加载完成后，使用淡入效果显示
+        tooltipImage.src = naImage.src;
+        setTimeout(() => {
+            tooltipImage.style.opacity = '1';
+        }, 10);
+    };
     
     // 添加错误处理，以防NA.png也无法加载
-    tooltipImage.onerror = () => {
+    naImage.onerror = () => {
         console.error('Failed to load NA.png fallback image');
-        // 设置一些样式，使空图片区域可见
-        tooltipImage.style.width = '100%';
-        tooltipImage.style.height = 'auto';
-        tooltipImage.style.minHeight = '120px';
-        tooltipImage.style.backgroundColor = '#f0f0f0';
-        tooltipImage.style.border = '1px solid #ccc';
         tooltipImage.alt = '图片无法加载';
+        tooltipImage.style.opacity = '1';
     };
 }
 
 // 处理鼠标悬停事件，显示 tooltip
 function handleTooltipHover(event, streamer) {
     let tooltipTimeout;
-    let cachedRoomInfo = null;
-    let preloadedImage = null;
+    let preloadResult = null;
+    let isLoading = false;
+    let preloadStarted = false;
 
     // Ensure event target is an img element
     if (event.target.tagName.toLowerCase() !== 'img') return;
 
-    // Preload room info and image when mouse is near the icon (before hovering)
-    event.target.addEventListener('mouseover', () => {
-        if (streamer.live_status === 1 && !cachedRoomInfo) {
-            // Start preloading in background
+    // 预加载处理函数
+    const preloadHandler = () => {
+        if (streamer.live_status === 1 && !preloadResult && !preloadStarted) {
+            preloadStarted = true; // 标记预加载已开始，防止重复触发
+            // 开始后台预加载
             preloadRoomInfoAndImage(streamer).then(result => {
-                cachedRoomInfo = result.roomInfo;
-                preloadedImage = result.image;
+                preloadResult = result;
+                preloadStarted = false; // 重置标记
+                // 如果正在显示加载动画，则显示tooltip
+                if (isLoading) {
+                    showTooltipWithData(event, preloadResult);
+                    // 隐藏小型加载动画
+                    hideIconLoadingSpinner(event.target.parentNode);
+                    isLoading = false;
+                }
             }).catch(error => {
                 console.error('Error preloading room info:', error);
+                preloadStarted = false; // 重置标记
+                // 如果正在显示加载动画，则隐藏它
+                if (isLoading) {
+                    hideIconLoadingSpinner(event.target.parentNode);
+                    isLoading = false;
+                }
             });
         }
-    });
+    };
 
-    // Mouse enters the icon
+    // 提前预加载房间信息和图片（在鼠标接近图标前）
+    event.target.addEventListener('mouseover', preloadHandler);
+
+    // 鼠标进入图标
     event.target.onmouseenter = async () => {
         if (streamer.live_status === 1) {
-            // Clear previous timeout
+            // 清除之前的超时
             clearTimeout(tooltipTimeout);
             hideTooltip();
 
-            // Set new timeout with reduced delay since we're preloading
+            // 如果已经有预加载结果，直接显示tooltip
+            if (preloadResult) {
+                showTooltipWithData(event, preloadResult);
+                return;
+            }
+
+            // 防止重复显示加载动画
+            if (!isLoading) {
+                // 显示小型加载动画在头像下方
+                showIconLoadingSpinner(event.target.parentNode);
+                isLoading = true;
+            }
+
+            // 设置新的超时，由于我们在预加载，所以减少延迟
             tooltipTimeout = setTimeout(async () => {
                 try {
-                    let roomInfo, isImageLoaded = false;
+                    // 使用缓存数据（如果可用），否则获取它
+                    if (!preloadResult) {
+                        // 触发预加载处理器
+                        preloadHandler();
+                        // 等待一小段时间，看预加载是否完成
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
+                        // 如果预加载仍未完成，则直接获取数据
+                        if (!preloadResult) {
+                            preloadResult = await preloadRoomInfoAndImage(streamer);
+                        }
+                    }
                     
-                    // Use cached data if available, otherwise fetch it
-                    if (cachedRoomInfo) {
-                        roomInfo = cachedRoomInfo;
-                        isImageLoaded = !!preloadedImage;
-                    } else {
-                        const result = await preloadRoomInfoAndImage(streamer);
-                        roomInfo = result.roomInfo;
-                        preloadedImage = result.image;
-                        isImageLoaded = !!preloadedImage;
-                    }
-
-                    const startTime = new Date(roomInfo.data.live_time.replace(/ /, 'T'));
-                    const elapsedTime = Date.now() - startTime.getTime();
-                    const duration = formatDuration(elapsedTime);
-
-                    // Determine image orientation
-                    let isPortrait = false;
-                    if (preloadedImage) {
-                        isPortrait = preloadedImage.naturalHeight > preloadedImage.naturalWidth;
-                    } else {
-                        // Fallback to URL parsing if image isn't loaded yet
-                        const highResImageUrl = roomInfo.data.keyframe;
-                        const sizeMatch = highResImageUrl.match(/\/(\d+)x(\d+)\//);
-                        if (sizeMatch) {
-                            const width = parseInt(sizeMatch[1], 10);
-                            const height = parseInt(sizeMatch[2], 10);
-                            isPortrait = height > width;
-                        }
-                    }
-
-                    console.log('Image orientation:', isPortrait ? 'portrait' : 'landscape');
-
-                    // Generate tooltip content
-                    const tooltipContent = `
-                        <div class="tooltip-content ${isPortrait ? 'portrait' : 'landscape'}">
-                            <img class="tooltip-image" src="${isImageLoaded ? preloadedImage.src : `${roomInfo.data.keyframe}@50w_50h`}" 
-                                 alt="${roomInfo.data.title}" 
-                                 data-highres="${roomInfo.data.keyframe}">
-                            <div class="live-time">${duration}</div>
-                            <div class="tooltip-title">${roomInfo.data.title}</div>
-                        </div>
-                    `;
-
-                    // Show tooltip
-                    showTooltip(event, tooltipContent);
-
-                    // Get tooltip image element
-                    const tooltipImage = document.querySelector('.tooltip-content .tooltip-image');
-
-                    // 为图片添加错误处理
-                    if (tooltipImage) {
-                        tooltipImage.onerror = () => {
-                            console.error('Failed to load thumbnail image, trying user_cover');
-                            // Try to use user_cover as fallback
-                            const userCoverImage = new Image();
-                            userCoverImage.src = roomInfo.data.user_cover;
-                            
-                            userCoverImage.onload = () => {
-                                tooltipImage.src = userCoverImage.src;
-                            };
-                            
-                            userCoverImage.onerror = () => {
-                                console.error('Failed to load user_cover image, showing NA.png');
-                                showNAPicture(tooltipImage);
-                            };
-                        };
-                    }
-
-                    // If we haven't already loaded the high-res image, load it now
-                    if (tooltipImage && !isImageLoaded) {
-                        const highResImage = preloadedImage || new Image();
-                        if (!preloadedImage) {
-                            highResImage.src = tooltipImage.dataset.highres;
-                        }
-
-                        // When high-res image loads, replace low-res image
-                        highResImage.onload = () => {
-                            tooltipImage.src = highResImage.src;
-                        };
-
-                        // If high-res image fails, try user_cover before showing NA.png
-                        highResImage.onerror = async () => {
-                            console.error('Failed to load high-resolution image, trying user_cover');
-                            // Try to use user_cover as fallback
-                            const userCoverImage = new Image();
-                            userCoverImage.src = roomInfo.data.user_cover;
-                            
-                            userCoverImage.onload = () => {
-                                tooltipImage.src = userCoverImage.src;
-                            };
-                            
-                            userCoverImage.onerror = () => {
-                                console.error('Failed to load user_cover image, showing NA.png');
-                                showNAPicture(tooltipImage);
-                            };
-                        };
-                    }
+                    // 显示tooltip
+                    showTooltipWithData(event, preloadResult);
+                    
+                    // 隐藏小型加载动画
+                    hideIconLoadingSpinner(event.target.parentNode);
+                    isLoading = false;
                 } catch (error) {
                     console.error('Error showing tooltip:', error);
+                    // 隐藏小型加载动画
+                    hideIconLoadingSpinner(event.target.parentNode);
+                    isLoading = false;
                 }
-            }, 100); // Reduced delay from 200ms to 100ms
+            }, 50); // 减少延迟以提高响应速度
         }
     };
 
-    // Mouse leaves the icon
+    // 鼠标离开图标
     event.target.onmouseleave = () => {
         clearTimeout(tooltipTimeout);
         hideTooltip();
+        // 隐藏小型加载动画
+        if (isLoading) {
+            hideIconLoadingSpinner(event.target.parentNode);
+            isLoading = false;
+        }
     };
 }
 
+// 显示小型加载动画
+function showIconLoadingSpinner(iconElement) {
+    // 检查是否已存在加载动画
+    let spinner = iconElement.querySelector('.icon-loading-spinner');
+    if (!spinner) {
+        // 创建加载动画
+        spinner = document.createElement('div');
+        spinner.className = 'icon-loading-spinner';
+        iconElement.appendChild(spinner);
+    }
+    // 防止重复触发动画
+    if (spinner.style.display === 'block' || spinner.style.opacity === '1') {
+        return; // 如果已经显示，则不重复触发
+    }
+    // 先设置样式再显示，确保平滑过渡
+    spinner.style.opacity = '0';
+    spinner.style.display = 'block';
+    
+    // 使用requestAnimationFrame确保在下一帧渲染时设置不透明度
+    // 这样可以触发CSS过渡效果
+    requestAnimationFrame(() => {
+        spinner.style.opacity = '1';
+    });
+}
+
+// 隐藏小型加载动画
+function hideIconLoadingSpinner(iconElement) {
+    const spinner = iconElement.querySelector('.icon-loading-spinner');
+    if (spinner) {
+        // 使用淡出效果隐藏动画，防止下次显示时闪烁
+        spinner.style.opacity = '0';
+        // 使用setTimeout确保CSS过渡效果完成后再隐藏元素
+        setTimeout(() => {
+            if (spinner.style.opacity === '0') { // 确保在过渡期间没有被重新显示
+                spinner.style.display = 'none';
+            }
+        }, 150);
+    }
+}
+
+// 显示带有数据的tooltip
+function showTooltipWithData(event, preloadResult) {
+    try {
+        const roomInfo = preloadResult.roomInfo;
+        
+        // 确定要使用的图片（优先级：高分辨率 > 缩略图 > 用户封面 > NA图片）
+        let displayImage = preloadResult.highRes || preloadResult.thumbnail || preloadResult.userCover || null;
+        let isImageLoaded = !!displayImage;
+
+        const startTime = new Date(roomInfo.data.live_time.replace(/ /, 'T'));
+        const elapsedTime = Date.now() - startTime.getTime();
+        const duration = formatDuration(elapsedTime);
+
+        // 确定图片方向
+        let isPortrait = false;
+        if (displayImage) {
+            isPortrait = displayImage.naturalHeight > displayImage.naturalWidth;
+        } else {
+            // 如果图片尚未加载，则回退到URL解析
+            const highResImageUrl = roomInfo.data.keyframe;
+            const sizeMatch = highResImageUrl.match(/\/(\d+)x(\d+)\//);
+            if (sizeMatch) {
+                const width = parseInt(sizeMatch[1], 10);
+                const height = parseInt(sizeMatch[2], 10);
+                isPortrait = height > width;
+            }
+        }
+
+        // 创建一个临时图片元素来预加载图片
+        const preloadImg = new Image();
+        preloadImg.crossOrigin = "Anonymous";
+        
+        // 设置图片源
+        const imgSrc = isImageLoaded ? displayImage.src : `${roomInfo.data.keyframe}@50w_50h`;
+        
+        // 当图片加载完成或失败时显示tooltip
+        preloadImg.onload = () => {
+            // 生成tooltip内容
+            const tooltipContent = `
+                <div class="tooltip-content ${isPortrait ? 'portrait' : 'landscape'}">
+                    <img class="tooltip-image" 
+                         src="${imgSrc}" 
+                         alt="${roomInfo.data.title}" 
+                         style="opacity: 0; transition: opacity 0.3s ease-in;">
+                    <div class="live-time">${duration}</div>
+                    <div class="tooltip-title">${roomInfo.data.title}</div>
+                </div>
+            `;
+
+            // 显示tooltip
+            showTooltip(event, tooltipContent);
+
+            // 获取tooltip图片元素
+            const tooltipImage = document.querySelector('.tooltip-content .tooltip-image');
+
+            // 添加淡入效果
+            if (tooltipImage) {
+                // 图片已经预加载完成，可以立即显示
+                requestAnimationFrame(() => {
+                    tooltipImage.style.opacity = '1';
+                });
+                
+                // 为图片添加错误处理
+                tooltipImage.onerror = () => {
+                    console.error('Failed to load thumbnail image');
+                    // 如果有用户封面图，尝试使用
+                    if (preloadResult.userCover) {
+                        tooltipImage.src = preloadResult.userCover.src;
+                    } else {
+                        // 显示NA图片
+                        showNAPicture(tooltipImage);
+                    }
+                };
+            }
+
+            // 如果我们还没有加载高分辨率图片，现在加载它
+            if (tooltipImage && !preloadResult.highRes && preloadResult.thumbnail) {
+                // 如果有缩略图但没有高分辨率图片，尝试加载高分辨率图片
+                const highResImage = new Image();
+                highResImage.crossOrigin = "Anonymous";
+                highResImage.src = roomInfo.data.keyframe;
+
+                // 高分辨率图片加载完成后，替换低分辨率图片
+                highResImage.onload = () => {
+                    tooltipImage.style.opacity = '0';
+                    setTimeout(() => {
+                        tooltipImage.src = highResImage.src;
+                        tooltipImage.style.opacity = '1';
+                    }, 300);
+                    
+                    // 更新缓存
+                    preloadResult.highRes = highResImage;
+                };
+            }
+        };
+        
+        // 处理图片加载失败的情况
+        preloadImg.onerror = () => {
+            // 尝试使用备用图片
+            if (preloadResult.userCover) {
+                preloadImg.src = preloadResult.userCover.src;
+            } else {
+                // 如果没有可用的图片，使用NA图片并显示tooltip
+                const tooltipContent = `
+                    <div class="tooltip-content ${isPortrait ? 'portrait' : 'landscape'}">
+                        <img class="tooltip-image" 
+                             alt="${roomInfo.data.title}" 
+                             style="opacity: 0; transition: opacity 0.3s ease-in;">
+                        <div class="live-time">${duration}</div>
+                        <div class="tooltip-title">${roomInfo.data.title}</div>
+                    </div>
+                `;
+                
+                showTooltip(event, tooltipContent);
+                
+                const tooltipImage = document.querySelector('.tooltip-content .tooltip-image');
+                if (tooltipImage) {
+                    showNAPicture(tooltipImage);
+                }
+            }
+        };
+        
+        // 开始加载图片
+        preloadImg.src = imgSrc;
+    } catch (error) {
+        console.error('Error showing tooltip with data:', error);
+    }
+}
+
 // Helper function to preload room info and image
+// 图片缓存对象，用于存储已加载的图片
+const imageCache = {};
+
 async function preloadRoomInfoAndImage(streamer) {
     // Get roomid
     const roomid = streamer.link.split('//')[1].split('/')[1].split('?')[0];
     
+    // 检查缓存中是否已有该房间信息和图片
+    const cacheKey = `room_${roomid}`;
+    if (imageCache[cacheKey] && Date.now() - imageCache[cacheKey].timestamp < 60000) { // 缓存1分钟
+        console.log('Using cached room info and image for', streamer.streamer_name);
+        return imageCache[cacheKey].data;
+    }
+    
     // Get room info
     const roomInfo = await fetchRoomInfo(roomid);
     
-    // Start preloading the image, use keyframe first, fallback to user_cover if keyframe fails
-    const image = new Image();
-    image.crossOrigin = "Anonymous";
-    image.src = roomInfo.data.keyframe;
+    // 预先创建低分辨率缩略图和高分辨率图片对象
+    const thumbnailImage = new Image();
+    thumbnailImage.crossOrigin = "Anonymous";
+    thumbnailImage.src = `${roomInfo.data.keyframe}@50w_50h`; // 使用低分辨率版本加快加载
     
-    // Return both the room info and a promise for the image
-    return {
+    const highResImage = new Image();
+    highResImage.crossOrigin = "Anonymous";
+    highResImage.src = roomInfo.data.keyframe;
+    
+    // 创建用户封面图像作为备用
+    const userCoverImage = new Image();
+    userCoverImage.crossOrigin = "Anonymous";
+    userCoverImage.src = roomInfo.data.user_cover;
+    
+    // 并行加载所有图片
+    const imagePromises = [
+        loadImageWithTimeout(thumbnailImage, 1000),
+        loadImageWithTimeout(highResImage, 3000),
+        loadImageWithTimeout(userCoverImage, 3000)
+    ];
+    
+    // 等待任意一个图片加载完成
+    const images = await Promise.allSettled(imagePromises);
+    
+    // 找到第一个成功加载的图片
+    let loadedImage = null;
+    for (const result of images) {
+        if (result.status === 'fulfilled' && result.value) {
+            loadedImage = result.value;
+            break;
+        }
+    }
+    
+    // 如果高分辨率图片已加载，优先使用它
+    if (images[1].status === 'fulfilled' && images[1].value) {
+        loadedImage = images[1].value;
+    }
+    // 如果只有缩略图加载成功，使用缩略图
+    else if (images[0].status === 'fulfilled' && images[0].value) {
+        loadedImage = images[0].value;
+    }
+    // 如果用户封面图加载成功，使用封面图
+    else if (images[2].status === 'fulfilled' && images[2].value) {
+        loadedImage = images[2].value;
+    }
+    
+    const result = {
         roomInfo,
-        image: image.complete ? image : await new Promise((resolve, reject) => {
-            image.onload = () => resolve(image);
-            image.onerror = () => {
-                // If keyframe fails, try user_cover
-                console.log('Keyframe failed to load, trying user_cover');
-                const fallbackImage = new Image();
-                fallbackImage.crossOrigin = "Anonymous";
-                fallbackImage.src = roomInfo.data.user_cover;
-                
-                fallbackImage.onload = () => resolve(fallbackImage);
-                fallbackImage.onerror = () => resolve(null); // Resolve with null if both fail
-                // Add a timeout to prevent hanging
-                setTimeout(() => resolve(null), 3000);
-            };
-            // Add a timeout to prevent hanging
-            setTimeout(() => resolve(null), 3000);
-        })
+        image: loadedImage,
+        thumbnail: images[0].status === 'fulfilled' ? images[0].value : null,
+        highRes: images[1].status === 'fulfilled' ? images[1].value : null,
+        userCover: images[2].status === 'fulfilled' ? images[2].value : null
     };
+    
+    // 存入缓存
+    imageCache[cacheKey] = {
+        timestamp: Date.now(),
+        data: result
+    };
+    
+    return result;
+}
+
+// 辅助函数：带超时的图片加载
+function loadImageWithTimeout(image, timeout) {
+    return new Promise((resolve) => {
+        // 如果图片已经加载完成，直接返回
+        if (image.complete) {
+            resolve(image);
+            return;
+        }
+        
+        // 图片加载成功
+        image.onload = () => resolve(image);
+        
+        // 图片加载失败
+        image.onerror = () => resolve(null);
+        
+        // 设置超时
+        setTimeout(() => resolve(null), timeout);
+    });
 }
 
 // 在 createStreamerIcon 中调用 handleTooltipHover
