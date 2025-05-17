@@ -234,31 +234,80 @@
             position: fixed;
             background: white;
             border: 1px solid #ccc;
-            border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            padding: 4px 0;
+            border-radius: 8px; /* Rounded corners */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            display: flex; /* Horizontal layout */
+            padding: 3px; /* Reduced padding */
             z-index: 1000;
-            min-width: 70px;
-            margin: 5px;
+            /* min-width will be handled by content */
         }
         .context-menu-item {
-            padding: 5px 10px;
+            padding: 4px 4px; /* Reduced padding */
             cursor: pointer;
-            font-size: 13px;
+            font-size: 1.2em; /* Reduced font size */
+            color: #333;
+            margin: 0 5px; /* Spacing between icons */
+            transition: color 0.2s, transform 0.2s;
+        }
+        .context-menu-item.fa-times {
+            font-size: 1.4em; /* Reduced font size for delete icon */
         }
         .context-menu-item:hover {
-            background-color: #f0f0f0;
+            /* Default hover for items without specific hover */
+            color: #007bff;
+            transform: scale(1.1);
+        }
+        .context-menu-item.fa-heart {
+            position: relative;
+            top: 0.7px; /* Move heart icon down by 1px */
+        }
+        .context-menu-item.fa-heart:hover {
+            color: #e91e63; /* Pink hover for heart */
+            transform: scale(1.1);
+        }
+        .context-menu-item.fa-star:hover {
+            color: #ffeb3b; /* Yellow hover for star */
+            transform: scale(1.1);
+        }
+        .context-menu-item.fa-times:hover {
+            color: #f44336; /* Red hover for delete */
+            transform: scale(1.2);
+        }
+        .context-menu-item.active {
+            /* Default active color (e.g., for favorite/like) */
+            color: #ffc107;
+        }
+        .context-menu-item.fa-heart.active {
+            color: #d81b60; /* Darker pink for active heart */
+        }
+        .context-menu-item.fa-star.active {
+            color: #fdd835; /* Darker yellow for active star */
+        }
+        .context-menu-item.fa-heart.active:hover {
+            color: #c2185b; /* Even darker pink for active heart hover */
+            transform: scale(1.1);
+        }
+        .context-menu-item.fa-star.active:hover {
+            color: #fbc02d; /* Even darker yellow for active star hover */
+            transform: scale(1.1);
         }
 
-        /* Favorite Star */
-        .favorite-star {
+        /* Like/Favorite Indicators */
+        .like-indicator,
+        .favorite-indicator {
             position: absolute;
-            bottom: 40px;
+            bottom: 40px; /* Adjust as needed */
             right: 5px;
             width: 25px;
             height: 25px;
             z-index: 2;
             filter: drop-shadow(0 0 1px rgba(0,0,0,0.5));
+        }
+        .like-indicator {
+            /* Specific styles for like star if needed, e.g., different color */
+        }
+        .favorite-indicator {
+            /* Specific styles for favorite heart if needed */
         }
 
         /* New Streamer Animation */
@@ -373,6 +422,16 @@
             background-color: #2890a7;
         }
 
+        /* Add this new class for the "Like & Favorite" state */
+        .notification-btn.like-favorite {
+            background-color: #ff9800; /* Orange color to differentiate */
+        }
+
+        /* Add this for the Browser Notification ON state */
+        .notification-btn.browser-notification-on {
+            background-color: #a72890; 
+        }
+
         /* Keyframes for Animation */
         @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4); }
@@ -459,7 +518,8 @@
         </button>
         <input type="file" id="configFileInput" accept=".json" style="display: none;">
         <h3>Settings</h3>
-        <button id="notificationButton" class="notification-btn">Notifications: Off</button>
+        <button id="notificationButton" class="notification-btn">Notifications: All</button>
+        <button id="browserNotificationButton" class="notification-btn">Browser Notifications: On</button>
         <button class="manual-refresh-btn" id="manualRefreshButton">Manual Refresh</button>
         <button class="view-deleted-btn" id="viewDeletedButton">View Deleted Streamers</button>
         <div>
