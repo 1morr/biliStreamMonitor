@@ -14,60 +14,14 @@ const headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 Edg/116.0.1938.81'
 };
 
+// Add the missing variable definition
+let activeTooltipTarget = null;
 
 // popup.js
 
 
-// Modified function to handle notification state changes
-async function toggleNotificationState() {
-    const button = document.getElementById('notificationButton');
-    const result = await chrome.storage.local.get('notification');
-    let currentState = result.notification;
-    
-    // If notification setting doesn't exist, start with state 2 (all notifications)
-    if (currentState === undefined) {
-        currentState = 2;
-    }
-
-    // Cycle through states: 2 -> 1 -> 0 -> 2
-    if (currentState === 2) {
-        currentState = 1;
-    } else if (currentState === 1) {
-        currentState = 0;
-    } else {
-        currentState = 2;
-    }
-
-    // Update storage
-    await chrome.storage.local.set({ notification: currentState });
-
-    // Update button appearance
-    updateNotificationButton(currentState);
-}
-
-// Add this function to update button appearance
-function updateNotificationButton(state) {
-    const button = document.getElementById('notificationButton');
-    
-    // Remove all possible classes first
-    button.classList.remove('no-notification', 'favorite-only', 'all-notification');
-    
-    // Add appropriate class and text based on state
-    switch (state) {
-        case 0:
-            button.classList.add('no-notification');
-            button.textContent = 'Notifications: Off';
-            break;
-        case 1:
-            button.classList.add('favorite-only');
-            button.textContent = 'Notifications: Favorites Only';
-            break;
-        case 2:
-            button.classList.add('all-notification');
-            button.textContent = 'Notifications: All';
-            break;
-    }
-}
+// The old toggleNotificationState and updateNotificationButton are no longer needed as we use a select dropdown and a checkbox.
+// These will be removed or replaced by logic handling the new select and checkbox.
 
 
 
@@ -76,13 +30,26 @@ async function exportConfig() {
         // Get all the configuration data from storage
         const config = await chrome.storage.local.get([
             'deletedStreamers',
-            'favoriteStreamers',
+            'streamerStates', // Changed from favoriteStreamers
             'refreshInterval',
-            'notification'  // Add this line
+            'notificationPreference', // Changed from notification
+            'browserNotificationsEnabled' // Added new setting
         ]);
 
-        // Create a JSON blob
-        const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+        // Ensure all required keys exist with defaults if necessary
+        const defaultConfig = {
+            deletedStreamers: [],
+            streamerStates: {},
+            refreshInterval: 30,
+            notificationPreference: '2', // Default to 'All'
+            browserNotificationsEnabled: true // Default to enabled
+        };
+
+        // Merge fetched config with defaults to ensure all keys are present
+        const finalConfig = { ...defaultConfig, ...config };
+
+        // Create a JSON blob using the guaranteed complete config
+        const blob = new Blob([JSON.stringify(finalConfig, null, 2)], { type: 'application/json' });
         
         // Create download link
         const url = URL.createObjectURL(blob);
@@ -134,7 +101,7 @@ async function importConfig(file) {
         const config = JSON.parse(text);
         
         // Validate the config file
-        const requiredKeys = ['deletedStreamers', 'favoriteStreamers', 'refreshInterval', 'notification'];  // Add notification
+        const requiredKeys = ['deletedStreamers', 'streamerStates', 'refreshInterval', 'notificationPreference', 'browserNotificationsEnabled'];
         const hasAllKeys = requiredKeys.every(key => key in config);
         
         if (!hasAllKeys) {
@@ -150,8 +117,9 @@ async function importConfig(file) {
         // Update the refresh interval input
         document.getElementById('refreshTime').value = config.refreshInterval || 30;
 
-        // Update the notification button
-        updateNotificationButton(config.notification || 0);
+        // Update the notification buttons
+        updateNotificationButton(config.notificationPreference || '2');
+        updateBrowserNotificationButton(config.browserNotificationsEnabled !== undefined ? config.browserNotificationsEnabled : true);
         
         // Show loading message only when manually refreshing
         const loading = document.createElement('div');
@@ -229,7 +197,7 @@ function showError(message) {
     removeError();
 
     const overlay = document.createElement('div');
-    overlay.className = 'overlay';
+    overlay.className = 'error-overlay';
 
     const errorDiv = document.createElement('div');
     errorDiv.className = 'error-message';
@@ -254,7 +222,7 @@ function showError(message) {
 function removeError() {
     console.log('Removing Error at', new Date().toLocaleString())
     const existingError = document.querySelector('.error-message');
-    const existingOverlay = document.querySelector('.overlay');
+    const existingOverlay = document.querySelector('.error-overlay');
     if (existingError) {
         existingError.remove();
     }
@@ -291,41 +259,53 @@ function formatDuration(milliseconds) {
 async function fetchStreamerData() {
     const streamers = await chrome.storage.local.get('streamingInfo');
     const deletedStreamersData = await chrome.storage.local.get('deletedStreamers');
-    const favoriteStreamersData = await chrome.storage.local.get('favoriteStreamers');
+    const streamerStatesData = await chrome.storage.local.get('streamerStates'); // Changed favoriteStreamers to streamerStates
     const newStreamersData = await chrome.storage.local.get('newlyStreaming');
 
     return {
         streamersList: streamers.streamingInfo || [],
         deletedStreamers: deletedStreamersData.deletedStreamers || [],
-        favoriteStreamers: favoriteStreamersData.favoriteStreamers || [],
+        streamerStates: streamerStatesData.streamerStates || {}, // Changed favoriteStreamers to streamerStates, default to empty object
         newlyStreaming: newStreamersData.newlyStreaming || []
     };
 }
 
 // 对流媒体数据进行排序
-function sortStreamers(streamersList, favoriteStreamers) {
+function sortStreamers(streamersList, streamerStates) { // Changed favoriteStreamers to streamerStates
     return streamersList.sort((a, b) => {
         if (a.live_status === 1 && b.live_status !== 1) return -1;
         if (a.live_status !== 1 && b.live_status === 1) return 1;
 
-        const aIsFavorite = favoriteStreamers.includes(a.uid);
-        const bIsFavorite = favoriteStreamers.includes(b.uid);
-        if (aIsFavorite && !bIsFavorite) return -1;
-        if (!aIsFavorite && bIsFavorite) return 1;
+        const aState = streamerStates[a.uid];
+        const bState = streamerStates[b.uid];
+
+        // Favorite has higher priority than like, and both higher than normal
+        const getPriority = (state) => {
+            if (state === 'favorite') return 2;
+            if (state === 'like') return 1;
+            return 0;
+        };
+
+        const aPriority = getPriority(aState);
+        const bPriority = getPriority(bState);
+
+        if (aPriority !== bPriority) {
+            return bPriority - aPriority; // Higher priority comes first
+        }
 
         return b.medal_level - a.medal_level;
     });
 }
 
 // 渲染流媒体数据到页面
-function renderStreamers(sortedStreamers, deletedStreamers, favoriteStreamers, newlyStreaming) {
+function renderStreamers(sortedStreamers, deletedStreamers, streamerStates, newlyStreaming) { // Changed favoriteStreamers to streamerStates
     const container = document.getElementById('streamerContainer');
     container.innerHTML = '';
 
     sortedStreamers.forEach(streamer => {
         if (deletedStreamers.includes(streamer.uid)) return;
 
-        const iconDiv = createStreamerIcon(streamer, favoriteStreamers, newlyStreaming);
+        const iconDiv = createStreamerIcon(streamer, streamerStates, newlyStreaming); // Pass streamerStates
         container.appendChild(iconDiv);
     });
 }
@@ -481,28 +461,32 @@ function handleTooltipHover(event, streamer) {
     if (event.target.tagName.toLowerCase() !== 'img') return;
 
     // 预加载处理函数
-    const preloadHandler = () => {
+    const preloadHandler = (mouseOverEvent) => { // Changed: Add mouseOverEvent parameter
+        const currentTargetElement = mouseOverEvent.currentTarget; // Changed: Use currentTarget
+
         if (streamer.live_status === 1 && !preloadResult && !preloadStarted) {
             preloadStarted = true; // 标记预加载已开始，防止重复触发
             // 开始后台预加载
             preloadRoomInfoAndImage(streamer).then(result => {
                 preloadResult = result;
-                preloadStarted = false; // 重置标记
                 // 如果正在显示加载动画，则显示tooltip
-                if (isLoading) {
-                    showTooltipWithData(event, preloadResult);
+                // Changed: Check activeTooltipTarget and use currentTargetElement
+                if (activeTooltipTarget === currentTargetElement && isLoading) {
+                    showTooltipWithData(mouseOverEvent, preloadResult); // Pass mouseOverEvent
                     // 隐藏小型加载动画
-                    hideIconLoadingSpinner(event.target.parentNode);
+                    hideIconLoadingSpinner(currentTargetElement.parentNode);
                     isLoading = false;
                 }
             }).catch(error => {
                 console.error('Error preloading room info:', error);
-                preloadStarted = false; // 重置标记
                 // 如果正在显示加载动画，则隐藏它
-                if (isLoading) {
-                    hideIconLoadingSpinner(event.target.parentNode);
+                // Changed: Check activeTooltipTarget and use currentTargetElement
+                if (activeTooltipTarget === currentTargetElement && isLoading) {
+                    hideIconLoadingSpinner(currentTargetElement.parentNode);
                     isLoading = false;
                 }
+            }).finally(() => {
+                preloadStarted = false; // 重置标记, moved to finally
             });
         }
     };
@@ -511,7 +495,9 @@ function handleTooltipHover(event, streamer) {
     event.target.addEventListener('mouseover', preloadHandler);
 
     // 鼠标进入图标
-    event.target.onmouseenter = async () => {
+    event.target.onmouseenter = async (mouseEnterEvent) => { // Changed: Add mouseEnterEvent parameter
+        activeTooltipTarget = mouseEnterEvent.currentTarget; // Changed: Set active target, use currentTarget
+
         if (streamer.live_status === 1) {
             // 清除之前的超时
             clearTimeout(tooltipTimeout);
@@ -519,56 +505,99 @@ function handleTooltipHover(event, streamer) {
 
             // 如果已经有预加载结果，直接显示tooltip
             if (preloadResult) {
-                showTooltipWithData(event, preloadResult);
+                if (activeTooltipTarget === mouseEnterEvent.currentTarget) { // Changed: Check active target
+                    showTooltipWithData(mouseEnterEvent, preloadResult);
+                }
                 return;
             }
 
             // 防止重复显示加载动画
             if (!isLoading) {
                 // 显示小型加载动画在头像下方
-                showIconLoadingSpinner(event.target.parentNode);
-                isLoading = true;
+                if (activeTooltipTarget === mouseEnterEvent.currentTarget) { // Changed: Check active target
+                    // Add null check before accessing parentNode
+                    if (mouseEnterEvent.currentTarget && mouseEnterEvent.currentTarget.parentNode) {
+                        showIconLoadingSpinner(mouseEnterEvent.currentTarget.parentNode);
+                        isLoading = true;
+                    }
+                } else {
+                    return; // Mouse moved away before spinner could be shown
+                }
             }
 
             // 设置新的超时，由于我们在预加载，所以减少延迟
             tooltipTimeout = setTimeout(async () => {
+                if (activeTooltipTarget !== mouseEnterEvent.currentTarget) { // Changed: Check active target
+                    if (isLoading && mouseEnterEvent.currentTarget && mouseEnterEvent.currentTarget.parentNode) {
+                        hideIconLoadingSpinner(mouseEnterEvent.currentTarget.parentNode);
+                        isLoading = false;
+                    }
+                    return;
+                }
+
                 try {
                     // 使用缓存数据（如果可用），否则获取它
                     if (!preloadResult) {
-                        // 触发预加载处理器
-                        preloadHandler();
-                        // 等待一小段时间，看预加载是否完成
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        
-                        // 如果预加载仍未完成，则直接获取数据
-                        if (!preloadResult) {
-                            preloadResult = await preloadRoomInfoAndImage(streamer);
+                        // Wait a moment for mouseover preload to potentially complete
+                        await new Promise(resolve => setTimeout(resolve, 50)); 
+
+                        if (activeTooltipTarget !== mouseEnterEvent.currentTarget) { // Changed: Check active target again
+                            if (isLoading && mouseEnterEvent.currentTarget && mouseEnterEvent.currentTarget.parentNode) { 
+                                hideIconLoadingSpinner(mouseEnterEvent.currentTarget.parentNode); 
+                                isLoading = false; 
+                            }
+                            return;
+                        }
+
+                        if (!preloadResult) { // If still not there, fetch
+                           if (!preloadStarted) { 
+                                preloadStarted = true; 
+                                try {
+                                    preloadResult = await preloadRoomInfoAndImage(streamer);
+                                } finally {
+                                    preloadStarted = false; 
+                                }
+                           } else {
+                                // Preload is already in progress from mouseover, wait a bit longer
+                                await new Promise(resolve => setTimeout(resolve, 150)); 
+                                if (activeTooltipTarget !== mouseEnterEvent.currentTarget) { // Changed: Check active target again
+                                    if (isLoading && mouseEnterEvent.currentTarget && mouseEnterEvent.currentTarget.parentNode) { 
+                                        hideIconLoadingSpinner(mouseEnterEvent.currentTarget.parentNode); 
+                                        isLoading = false; 
+                                    }
+                                    return;
+                                }
+                           }
                         }
                     }
                     
-                    // 显示tooltip
-                    showTooltipWithData(event, preloadResult);
+                    if (activeTooltipTarget === mouseEnterEvent.currentTarget && preloadResult) { // Changed: Final check and ensure preloadResult exists
+                        showTooltipWithData(mouseEnterEvent, preloadResult);
+                    }
                     
-                    // 隐藏小型加载动画
-                    hideIconLoadingSpinner(event.target.parentNode);
-                    isLoading = false;
                 } catch (error) {
                     console.error('Error showing tooltip:', error);
-                    // 隐藏小型加载动画
-                    hideIconLoadingSpinner(event.target.parentNode);
-                    isLoading = false;
+                } finally {
+                    // Hide spinner if it was shown for this icon
+                    if (isLoading && mouseEnterEvent.currentTarget && mouseEnterEvent.currentTarget.parentNode) { 
+                        hideIconLoadingSpinner(mouseEnterEvent.currentTarget.parentNode);
+                        isLoading = false;
+                    }
                 }
             }, 50); // 减少延迟以提高响应速度
         }
     };
 
     // 鼠标离开图标
-    event.target.onmouseleave = () => {
+    event.target.onmouseleave = (mouseLeaveEvent) => { // Changed: Add mouseLeaveEvent parameter
+        if (mouseLeaveEvent.currentTarget === activeTooltipTarget) { // Changed: Check if this was the active target
+            activeTooltipTarget = null; // Clear active target
+        }
         clearTimeout(tooltipTimeout);
         hideTooltip();
         // 隐藏小型加载动画
-        if (isLoading) {
-            hideIconLoadingSpinner(event.target.parentNode);
+        if (isLoading && mouseLeaveEvent.currentTarget && mouseLeaveEvent.currentTarget.parentNode) {
+            hideIconLoadingSpinner(mouseLeaveEvent.currentTarget.parentNode); // Changed: use currentTarget
             isLoading = false;
         }
     };
@@ -576,6 +605,9 @@ function handleTooltipHover(event, streamer) {
 
 // 显示小型加载动画
 function showIconLoadingSpinner(iconElement) {
+    // Add null check for iconElement
+    if (!iconElement) return;
+    
     // 检查是否已存在加载动画
     let spinner = iconElement.querySelector('.icon-loading-spinner');
     if (!spinner) {
@@ -601,6 +633,9 @@ function showIconLoadingSpinner(iconElement) {
 
 // 隐藏小型加载动画
 function hideIconLoadingSpinner(iconElement) {
+    // Add null check for iconElement
+    if (!iconElement) return;
+    
     const spinner = iconElement.querySelector('.icon-loading-spinner');
     if (spinner) {
         // 使用淡出效果隐藏动画，防止下次显示时闪烁
@@ -678,12 +713,14 @@ function showTooltipWithData(event, preloadResult) {
                 
                 // 为图片添加错误处理
                 tooltipImage.onerror = () => {
-                    console.error('Failed to load thumbnail image');
+                    console.log('Failed to load thumbnail image, showing user cover or NA image.');
                     // 如果有用户封面图，尝试使用
                     if (preloadResult.userCover) {
+                        console.log('Using user cover image.');
                         tooltipImage.src = preloadResult.userCover.src;
                     } else {
                         // 显示NA图片
+                        console.log('Showing NA image.');
                         showNAPicture(tooltipImage);
                     }
                 };
@@ -845,7 +882,7 @@ function loadImageWithTimeout(image, timeout) {
 }
 
 // 在 createStreamerIcon 中调用 handleTooltipHover
-function createStreamerIcon(streamer, favoriteStreamers, newlyStreaming) {
+function createStreamerIcon(streamer, streamerStates, newlyStreaming) { // Changed favoriteStreamers to streamerStates
     const iconDiv = document.createElement('div');
     iconDiv.className = 'icon' + (streamer.live_status === 1 ? '' : ' not-streaming');
 
@@ -899,9 +936,7 @@ function createStreamerIcon(streamer, favoriteStreamers, newlyStreaming) {
         iconDiv.appendChild(liveBadge);
     }
 
-    if (favoriteStreamers.includes(streamer.uid)) {
-        addFavoriteStar(iconDiv);
-    }
+    updateStreamerIndicator(iconDiv, streamer.uid, streamerStates); // Use new indicator function
 
     iconDiv.appendChild(img);
     iconDiv.appendChild(nameDiv);
@@ -922,14 +957,17 @@ function handleNewStreamers(newlyStreaming) {
 // 主函数：加载流媒体数据
 async function loadStreamerData() {
     try {
-        const { streamersList, deletedStreamers, favoriteStreamers, newlyStreaming } = await fetchStreamerData();
+        const { streamersList, deletedStreamers, streamerStates, newlyStreaming } = await fetchStreamerData(); // Changed favoriteStreamers to streamerStates
 
         if (streamersList.length === 0) {
-            throw new Error('No streamer data found. Please make sure you are logged into Bilibili and try refreshing.');
+            // Do not throw error here, allow empty list for new users or after clearing all streamers
+            // showError('No streamer data found. Please make sure you are logged into Bilibili and try refreshing.');
+            const container = document.getElementById('streamerContainer');
+            container.innerHTML = '<p style="text-align: center; margin-top: 20px;">No streamers being monitored. Add streamers via the background page or by importing a configuration.</p>';
         }
 
-        const sortedStreamers = sortStreamers(streamersList, favoriteStreamers);
-        renderStreamers(sortedStreamers, deletedStreamers, favoriteStreamers, newlyStreaming);
+        const sortedStreamers = sortStreamers(streamersList, streamerStates);
+        renderStreamers(sortedStreamers, deletedStreamers, streamerStates, newlyStreaming);
         handleNewStreamers(newlyStreaming);
 
         console.log('Streamers info loaded successfully at:', new Date().toLocaleString());
@@ -1061,115 +1099,134 @@ async function removeStreamerFromDeleted(uid) {
 }
 
 
-function showContextMenu(event, streamer, iconDiv) {
-    console.log('Showing Context Menu at', new Date().toLocaleString())
+async function showContextMenu(event, streamer, iconDiv) {
+    console.log('Showing Context Menu for:', streamer.streamer_name, 'at', new Date().toLocaleString());
     event.preventDefault();
-    
-    // Remove any existing context menus
     removeContextMenu();
-    
-    const contextMenu = document.createElement('div');
-    contextMenu.className = 'context-menu';
-    
-    // Calculate the position for the context menu
-    const menuWidth = 100; // Adjust based on your context menu width
-    const menuHeight = 80; // Adjust based on your context menu height
-    let left = event.pageX;
-    let top = event.pageY;
 
-    // Adjust position if it goes off the right or bottom edge of the window
-    if (left + menuWidth > window.innerWidth) {
-        left = window.innerWidth - menuWidth;
-    }
-    if (top + menuHeight > window.innerHeight) {
-        top = window.innerHeight - menuHeight;
-    }
+    const contextMenu = document.createElement('div');
+    contextMenu.className = 'context-menu'; // Styles for this are in popup.html
+
+    const { streamerStates: currentStreamerStates } = await chrome.storage.local.get('streamerStates');
+    const streamerStates = currentStreamerStates || {};
+    const currentState = streamerStates[streamer.uid];
+
+    // Create Favorite (Heart) Icon
+    const favoriteIcon = document.createElement('i');
+    favoriteIcon.className = `fas fa-heart context-menu-item ${currentState === 'favorite' ? 'active' : ''}`;
+    favoriteIcon.title = currentState === 'favorite' ? 'Unfavorite' : 'Favorite';
+    favoriteIcon.onclick = async () => {
+        const newStates = { ...streamerStates };
+        if (currentState === 'favorite') {
+            delete newStates[streamer.uid];
+        } else {
+            newStates[streamer.uid] = 'favorite';
+        }
+        await chrome.storage.local.set({ streamerStates: newStates });
+        updateStreamerIndicator(iconDiv, streamer.uid, newStates);
+        removeContextMenu();
+        await loadStreamerData(); // Refresh to re-sort and update UI fully
+    };
+
+    // Create Like (Star) Icon
+    const likeIcon = document.createElement('i');
+    likeIcon.className = `fas fa-star context-menu-item ${currentState === 'like' ? 'active' : ''}`;
+    likeIcon.title = currentState === 'like' ? 'Unlike' : 'Like';
+    likeIcon.onclick = async () => {
+        const newStates = { ...streamerStates };
+        if (currentState === 'like') {
+            delete newStates[streamer.uid];
+        } else {
+            newStates[streamer.uid] = 'like';
+        }
+        await chrome.storage.local.set({ streamerStates: newStates });
+        updateStreamerIndicator(iconDiv, streamer.uid, newStates);
+        removeContextMenu();
+        await loadStreamerData(); // Refresh to re-sort and update UI fully
+    };
+
+    // Create Delete (Cross) Icon
+    const deleteIcon = document.createElement('i');
+    deleteIcon.className = 'fas fa-times context-menu-item';
+    deleteIcon.title = 'Delete';
+    deleteIcon.onclick = async () => {
+        const container = document.getElementById('streamerContainer');
+        if (container.contains(iconDiv)) {
+             container.removeChild(iconDiv);
+        }
+        const deletedStreamersData = await chrome.storage.local.get('deletedStreamers');
+        const deletedStreamers = deletedStreamersData.deletedStreamers || [];
+        if (!deletedStreamers.includes(streamer.uid)) {
+            deletedStreamers.push(streamer.uid);
+            await chrome.storage.local.set({ 'deletedStreamers': deletedStreamers });
+        }
+        // Also remove from streamerStates if present
+        const newStates = { ...streamerStates };
+        if (newStates[streamer.uid]) {
+            delete newStates[streamer.uid];
+            await chrome.storage.local.set({ streamerStates: newStates });
+        }
+        removeContextMenu();
+        // No loadStreamerData() here as it's a delete, the icon is already removed.
+    };
+
+    contextMenu.appendChild(favoriteIcon);
+    contextMenu.appendChild(likeIcon);
+    contextMenu.appendChild(deleteIcon);
+    document.body.appendChild(contextMenu);
+
+    // Positioning logic
+    const menuRect = contextMenu.getBoundingClientRect();
+    let left = event.clientX - menuRect.width / 2 + 60;
+    let top = event.clientY + 20; // Position below cursor
+
+    if (left < 0) left = 5;
+    if (top < 0) top = 5; // Should not happen if positioned below cursor
+    if (left + menuRect.width > window.innerWidth) left = window.innerWidth - menuRect.width - 5;
+    if (top + menuRect.height > window.innerHeight) top = event.clientY - menuRect.height - 10; // Position above cursor if not enough space below
     
-    // Set the position of the context menu
     contextMenu.style.left = `${left}px`;
     contextMenu.style.top = `${top}px`;
 
-    // Create menu items
-    const deleteOption = document.createElement('div');
-    deleteOption.className = 'context-menu-item';
-    deleteOption.textContent = 'Delete';
-    deleteOption.id = 'delete-option';
+    document.addEventListener('click', handleClickOutsideMenu, true);
+}
 
-    const favoriteOption = document.createElement('div');
-    favoriteOption.className = 'context-menu-item';
-    favoriteOption.id = 'favorite-option';
-
-    // Check if streamer is already favorited
-    chrome.storage.local.get('favoriteStreamers', (result) => {
-        const favoriteStreamers = result.favoriteStreamers || [];
-        const isFavorite = favoriteStreamers.includes(streamer.uid);
-        
-        favoriteOption.textContent = isFavorite ? 'Unfavorite' : 'Favorite';
-        
-        deleteOption.onclick = async () => {
-            const container = document.getElementById('streamerContainer');
-            container.removeChild(iconDiv);
-            const deletedStreamersData = await chrome.storage.local.get('deletedStreamers');
-            const deletedStreamers = deletedStreamersData.deletedStreamers || [];
-            deletedStreamers.push(streamer.uid);
-            await chrome.storage.local.set({ 'deletedStreamers': deletedStreamers });
-            
-            removeContextMenu();
-        };
-        
-        favoriteOption.onclick = async () => {
-            const favoriteStreamersData = await chrome.storage.local.get('favoriteStreamers');
-            let favoriteStreamers = favoriteStreamersData.favoriteStreamers || [];
-            
-            if (isFavorite) {
-                favoriteStreamers = favoriteStreamers.filter(id => id !== streamer.uid);
-                removeFavoriteStar(iconDiv);
-            } else {
-                favoriteStreamers.push(streamer.uid);
-                addFavoriteStar(iconDiv);
-            }
-            
-            await chrome.storage.local.set({ 'favoriteStreamers': favoriteStreamers });
-            removeContextMenu();
-            loadStreamerData(); // Refresh the display
-        };
-    });
-    
-    contextMenu.appendChild(favoriteOption);
-    contextMenu.appendChild(deleteOption);
-    document.body.appendChild(contextMenu);
-    
-    // Close context menu when clicking outside
-    document.addEventListener('click', removeContextMenu);
+function handleClickOutsideMenu(event) {
+    const contextMenu = document.querySelector('.context-menu');
+    if (contextMenu && !contextMenu.contains(event.target)) {
+        removeContextMenu();
+    }
 }
 
 
 function removeContextMenu() {
-    console.log('Removing Context Menu at', new Date().toLocaleString())
+    console.log('Removing Context Menu at', new Date().toLocaleString());
     const existingMenu = document.querySelector('.context-menu');
     if (existingMenu) {
         existingMenu.remove();
     }
+    document.removeEventListener('click', handleClickOutsideMenu, true);
 }
 
 
-function addFavoriteStar(iconDiv) {
-    console.log('Add Favorite Star at', new Date().toLocaleString())
-    const existingStar = iconDiv.querySelector('.favorite-star');
-    if (!existingStar) {
-        const star = document.createElement('div');
-        star.className = 'favorite-star';
-        // Using Font Awesome for the star icon
-        star.innerHTML = '<i class="fa-solid fa-star" style="color: #FFD700; font-size: 16px;"></i>';
-        iconDiv.appendChild(star);
+function updateStreamerIndicator(iconDiv, uid, streamerStates) {
+    console.log('Updating indicator for UID:', uid, 'at', new Date().toLocaleString());
+    let indicator = iconDiv.querySelector('.streamer-indicator');
+    if (indicator) {
+        indicator.remove();
     }
-}
 
-function removeFavoriteStar(iconDiv) {
-    console.log('Removing Favorite Star at', new Date().toLocaleString())
-    const star = iconDiv.querySelector('.favorite-star');
-    if (star) {
-        star.remove();
+    const state = streamerStates[uid];
+    if (state === 'favorite') {
+        indicator = document.createElement('div');
+        indicator.className = 'streamer-indicator favorite-indicator'; // Uses .favorite-indicator style from HTML
+        indicator.innerHTML = '<i class="fas fa-heart" style="color: #ff6b81; font-size: 16px;"></i>'; // Heart icon
+        iconDiv.appendChild(indicator);
+    } else if (state === 'like') {
+        indicator = document.createElement('div');
+        indicator.className = 'streamer-indicator like-indicator'; // Uses .like-indicator style from HTML
+        indicator.innerHTML = '<i class="fas fa-star" style="color: #FFD700; font-size: 16px;"></i>'; // Star icon
+        iconDiv.appendChild(indicator);
     }
 }
 
@@ -1235,14 +1292,20 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 
-    // Initialize notification button with default state 2
-    chrome.storage.local.get('notification', (result) => {
-        const notificationState = result.notification !== undefined ? result.notification : 2; // Default to 2
-        updateNotificationButton(notificationState);
+    // Initialize notification buttons
+    chrome.storage.local.get(['notificationPreference', 'browserNotificationsEnabled'], (result) => {
+        const notificationPreference = result.notificationPreference !== undefined ? result.notificationPreference : '2'; // Default to '2' (All)
+        updateNotificationButton(notificationPreference);
+
+        const browserNotificationsEnabled = result.browserNotificationsEnabled !== undefined ? result.browserNotificationsEnabled : true;
+        updateBrowserNotificationButton(browserNotificationsEnabled);
     });
 
     // Add click event listener for notification button
     document.getElementById('notificationButton').addEventListener('click', toggleNotificationState);
+
+    // Add click event listener for browser notification button
+    document.getElementById('browserNotificationButton').addEventListener('click', toggleBrowserNotifications);
 
     
     document.getElementById('refreshTime').addEventListener('change', (event) => {
@@ -1257,4 +1320,97 @@ document.addEventListener('DOMContentLoaded', function() {
 
     });
 });
+
+// Add these functions back to handle the notification button cycling
+async function toggleNotificationState() {
+    const button = document.getElementById('notificationButton');
+    const result = await chrome.storage.local.get('notificationPreference');
+    let currentState = result.notificationPreference;
+    
+    // If notification setting doesn't exist, start with state '2' (all notifications)
+    if (currentState === undefined) {
+        currentState = '2';
+    }
+
+    // Cycle through states: '2' (All) -> '3' (Like & Favorite) -> '1' (Favorite) -> '0' (Off) -> '2' (All)
+    if (currentState === '2') {
+        currentState = '3';
+    } else if (currentState === '3') {
+        currentState = '1';
+    } else if (currentState === '1') {
+        currentState = '0';
+    } else {
+        currentState = '2';
+    }
+
+    // Update storage
+    await chrome.storage.local.set({ notificationPreference: currentState });
+
+    // Update button appearance
+    updateNotificationButton(currentState);
+}
+
+function updateNotificationButton(state) {
+    const button = document.getElementById('notificationButton');
+    
+    // Remove all possible classes first
+    button.classList.remove('no-notification', 'favorite-only', 'all-notification', 'like-favorite');
+    
+    // Add appropriate class and text based on state
+    switch (state) {
+        case '0':
+            button.classList.add('no-notification');
+            button.textContent = 'Notifications: Off';
+            break;
+        case '1':
+            button.classList.add('favorite-only');
+            button.textContent = 'Notifications: Favorites Only';
+            break;
+        case '3':
+            button.classList.add('like-favorite'); // Use the new class
+            button.textContent = 'Notifications: Like & Favorite';
+            break;
+        case '2':
+        default:
+            button.classList.add('all-notification');
+            button.textContent = 'Notifications: All';
+            break;
+    }
+}
+
+// Add function to toggle browser notifications
+async function toggleBrowserNotifications() {
+    const button = document.getElementById('browserNotificationButton');
+    const result = await chrome.storage.local.get('browserNotificationsEnabled');
+    let enabled = result.browserNotificationsEnabled;
+    
+    // If setting doesn't exist, default to true
+    if (enabled === undefined) {
+        enabled = true;
+    }
+    
+    // Toggle the setting
+    enabled = !enabled;
+    
+    // Update storage
+    await chrome.storage.local.set({ browserNotificationsEnabled: enabled });
+    
+    // Update button appearance
+    updateBrowserNotificationButton(enabled);
+}
+
+function updateBrowserNotificationButton(enabled) {
+    const button = document.getElementById('browserNotificationButton');
+    
+    // Remove potentially existing classes first
+    button.classList.remove('no-notification', 'browser-notification-on');
+
+    if (enabled) {
+        button.classList.add('browser-notification-on'); // Use the new class
+        button.textContent = 'Browser Notifications: On';
+    } else {
+        button.classList.add('no-notification'); // Keep using this for Off
+        button.textContent = 'Browser Notifications: Off';
+    }
+}
 
