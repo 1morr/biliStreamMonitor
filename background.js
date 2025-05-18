@@ -14,6 +14,26 @@ const headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 Edg/116.0.1938.81'
 };
 
+// Function to fetch room info
+async function fetchRoomInfo(roomid) {
+    const url = `https://api.live.bilibili.com/room/v1/Room/get_info?room_id=${roomid}`;
+    const response = await fetch(url, {
+        headers: headers,
+        credentials: 'include'
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch room info: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (data.code !== 0) {
+        throw new Error(`API Error: ${data.message || 'Unknown error'}`);
+    }
+
+    return data;
+}
+
 // Function to get the target ID from cookies
 async function getTargetId() {
     console.log('getTargetId() at', new Date().toLocaleString());
@@ -159,22 +179,43 @@ async function updateBadgeAndNotifyForNewStreamers(streamingInfo) {
                     console.log('Sending browser notifications for newly live favorites:', favoriteNewlyLiveStreamers.map(s => s.streamer_name), new Date().toLocaleString());
                 }
 
-                favoriteNewlyLiveStreamers.forEach(streamer => {
-                    // `streamer` is from newLiveStreamers, so they just came online in this cycle
-                    chrome.notifications.create(`live-${streamer.uid}-${Date.now()}`, {
-                        type: 'basic',
-                        iconUrl: streamer.streamer_icon || 'images/icon128.png',
-                        title: `${streamer.streamer_name} is now live!`,
-                        message: `Click to watch ${streamer.streamer_name}`,
-                        priority: 2
-                    }, (notificationId) => {
-                        // Store notificationId to handle click later if needed
-                        chrome.storage.local.get({openTabsOnNotificationClick: {}}, function(data) {
-                            data.openTabsOnNotificationClick[notificationId] = streamer.link;
-                            chrome.storage.local.set({openTabsOnNotificationClick: data.openTabsOnNotificationClick});
+                // Get room info and create notification for each streamer
+                for (const streamer of favoriteNewlyLiveStreamers) {
+                    try {
+                        const roomId = streamer.link.split('/').pop();
+                        const roomInfo = await fetchRoomInfo(roomId);
+                        const title = roomInfo.data.title;
+
+                        chrome.notifications.create(`live-${streamer.uid}-${Date.now()}`, {
+                            type: 'basic',
+                            iconUrl: streamer.streamer_icon || 'images/icon128.png',
+                            title: `${streamer.streamer_name} is now live!`,
+                            message: `Now streaming: ${title}`,
+                            priority: 2
+                        }, (notificationId) => {
+                            // Store notificationId to handle click later if needed
+                            chrome.storage.local.get({openTabsOnNotificationClick: {}}, function(data) {
+                                data.openTabsOnNotificationClick[notificationId] = streamer.link;
+                                chrome.storage.local.set({openTabsOnNotificationClick: data.openTabsOnNotificationClick});
+                            });
                         });
-                    });
-                });
+                    } catch (error) {
+                        console.error('Error fetching room info:', error);
+                        // Fallback to original notification if room info fetch fails
+                        chrome.notifications.create(`live-${streamer.uid}-${Date.now()}`, {
+                            type: 'basic',
+                            iconUrl: streamer.streamer_icon || 'images/icon128.png',
+                            title: `${streamer.streamer_name} is now live!`,
+                            message: `Click to watch ${streamer.streamer_name}`,
+                            priority: 2
+                        }, (notificationId) => {
+                            chrome.storage.local.get({openTabsOnNotificationClick: {}}, function(data) {
+                                data.openTabsOnNotificationClick[notificationId] = streamer.link;
+                                chrome.storage.local.set({openTabsOnNotificationClick: data.openTabsOnNotificationClick});
+                            });
+                        });
+                    }
+                }
             }
         } else {
             console.log('No new streamers for badge based on preferences at:', new Date().toLocaleString());
