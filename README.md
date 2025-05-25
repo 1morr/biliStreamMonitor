@@ -35,7 +35,6 @@ A Chrome extension for monitoring Bilibili streamers from your medal wall. Get n
     *   Right-click on a streamer's entry in the popup to open a context menu.
     *   From the context menu, you can:
         *   Mark/unmark the streamer as a **Favorite** (heart icon).
-        *   Like the streamer (star icon).
-        *   Open the streamer's live room (external link icon - implicitly handled by clicking the streamer).
-        *   Remove/hide the streamer from the list (delete icon).
+        *   **Like** the streamer (star icon).
+        *   **Remove/hide** the streamer from the list (delete icon).
 7.  **Notifications:** If you have marked a streamer as a favorite, you will receive a desktop notification when they go live. The notification will include their name and the title of their current stream.
