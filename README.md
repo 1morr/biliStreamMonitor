@@ -11,7 +11,6 @@ A Chrome extension for monitoring Bilibili streamers from your medal wall. Get n
 *   **Quick Access:** Click on a streamer to open their Bilibili live room directly.
 *   **Favorites System:** Mark streamers as favorites to receive prioritized notifications.
 *   **Context Menu:** Right-click (or long-press) on a streamer in the popup for quick actions like marking as favorite, liking (placeholder), or opening the stream.
-*   **Customizable Settings:** (Future feature - e.g., notification preferences, refresh interval).
 
 ## Installation
 
