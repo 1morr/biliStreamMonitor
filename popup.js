@@ -682,7 +682,16 @@ function showTooltipWithData(event, preloadResult) {
         preloadImg.crossOrigin = "Anonymous";
         
         // 设置图片源
-        const imgSrc = isImageLoaded ? displayImage.src : `${roomInfo.data.keyframe}@50w_50h`;
+        let imgSrc;
+        if (isImageLoaded) {
+            imgSrc = displayImage.src;
+        } else if (roomInfo.data.keyframe) {
+            imgSrc = `${roomInfo.data.keyframe}@50w_50h`;
+        } else if (roomInfo.data.user_cover) {
+            imgSrc = roomInfo.data.user_cover;
+        } else {
+            imgSrc = chrome.runtime.getURL('images/NA.png');
+        }
         
         // 当图片加载完成或失败时显示tooltip
         preloadImg.onload = () => {
