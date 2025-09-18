@@ -11,7 +11,6 @@ A Chrome extension for monitoring Bilibili streamers from your medal wall. Get n
 *   **Quick Access:** Click on a streamer to open their Bilibili live room directly.
 *   **Favorites System:** Mark streamers as favorites to receive prioritized notifications.
 *   **Context Menu:** Right-click (or long-press) on a streamer in the popup for quick actions like marking as favorite, liking (placeholder), or opening the stream.
-*   **Customizable Settings:** (Future feature - e.g., notification preferences, refresh interval).
 
 ## Installation
 
@@ -27,15 +26,15 @@ A Chrome extension for monitoring Bilibili streamers from your medal wall. Get n
 
 ## How to Use
 
-1.  **Open the Popup:** Click the BiliStreamMonitor extension icon in your Chrome toolbar.
-2.  **View Streamers:** The popup will display a list of streamers from your Bilibili medal wall. Streamers who are currently live will be highlighted.
-3.  **Open Stream:** Click on a streamer's name or icon in the list to open their Bilibili live room in a new tab.
-4.  **Tooltips:** Hover your mouse over the icon of a live streamer to see a tooltip displaying the current stream title and a preview image.
-5.  **Context Menu:**
+1.  **Make sure you are logged in:** It would automatically retrieve your cookies from bilibili.
+2.  **Open the Popup:** Click the BiliStreamMonitor extension icon in your Chrome toolbar.
+3.  **View Streamers:** The popup will display a list of streamers from your Bilibili medal wall. Streamers who are currently live will be highlighted.
+4.  **Open Stream:** Click on a streamer's name or icon in the list to open their Bilibili live room in a new tab.
+5.  **Tooltips:** Hover your mouse over the icon of a live streamer to see a tooltip displaying the current stream title and a preview image.
+6.  **Context Menu:**
     *   Right-click on a streamer's entry in the popup to open a context menu.
     *   From the context menu, you can:
         *   Mark/unmark the streamer as a **Favorite** (heart icon).
-        *   Like the streamer (star icon).
-        *   Open the streamer's live room (external link icon - implicitly handled by clicking the streamer).
-        *   Remove/hide the streamer from the list (delete icon).
-6.  **Notifications:** If you have marked a streamer as a favorite, you will receive a desktop notification when they go live. The notification will include their name and the title of their current stream.
+        *   **Like** the streamer (star icon).
+        *   **Remove/hide** the streamer from the list (delete icon).
+7.  **Notifications:** If you have marked a streamer as a favorite, you will receive a desktop notification when they go live. The notification will include their name and the title of their current stream.
