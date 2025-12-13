@@ -1,6 +1,7 @@
 :root {
     /* 外观变量 */
     --app-width: 360px;
+    --app-height: 560px;
     --avatar-size: 54px;
     --card-padding: 10px;
     --base-font-size: 12px;
@@ -24,7 +25,7 @@
 
 body {
     width: var(--app-width);
-    height: 560px;
+    height: var(--app-height);
     margin: 0;
     padding: 0;
     font-family: var(--font-stack);
@@ -32,7 +33,7 @@ body {
     color: var(--text-primary);
     overflow-x: hidden;
     user-select: none;
-    transition: width 0.05s ease; /* 加快宽度响应速度，因为现在是实时拖拽 */
+    transition: width 0.05s ease, height 0.05s ease; 
 }
 
 /* ... (背景光斑等代码保持不变) ... */

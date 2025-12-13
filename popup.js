@@ -1,5 +1,17 @@
 // popup.js
 
+// 默认外观
+const DEFAULT_APPEARANCE = {
+    width: 360,
+    height: 560,
+    avatarSize: 54,
+    cardPadding: 10,
+    fontSize: 12,
+    gapX: 12,
+    gapY: 12,
+    showCardBg: true
+};
+
 const State = {
     streamers: [],
     deletedUids: [],
@@ -9,27 +21,8 @@ const State = {
     notificationPref: '2',
     browserNotify: true,
     // 外观配置
-    appearance: {
-        width: 360,
-        avatarSize: 54,
-        cardPadding: 10,
-        fontSize: 12,
-        gapX: 12,
-        gapY: 12,
-        showCardBg: true
-    },
+    appearance: { ...DEFAULT_APPEARANCE }, 
     roomCache: new Map() 
-};
-
-// 默认外观
-const DEFAULT_APPEARANCE = {
-    width: 360,
-    avatarSize: 54,
-    cardPadding: 10,
-    fontSize: 12,
-    gapX: 12,
-    gapY: 12,
-    showCardBg: true
 };
 
 // --- DOM Elements ---
@@ -98,13 +91,13 @@ async function loadData() {
 function applyTheme(appearance) {
     const root = document.documentElement;
     root.style.setProperty('--app-width', `${appearance.width}px`);
+    root.style.setProperty('--app-height', `${appearance.height}px`); // 新增
     root.style.setProperty('--avatar-size', `${appearance.avatarSize}px`);
     root.style.setProperty('--card-padding', `${appearance.cardPadding}px`);
     root.style.setProperty('--base-font-size', `${appearance.fontSize}px`);
     root.style.setProperty('--grid-gap-x', `${appearance.gapX}px`);
     root.style.setProperty('--grid-gap-y', `${appearance.gapY}px`);
 
-    // Handle Card Background
     if (appearance.showCardBg) {
         gridContainer.classList.remove('minimal-mode');
     } else {
@@ -328,13 +321,17 @@ function updateSettingsUI() {
 
     const app = State.appearance;
     
-    // Helper to sync UI values
     const syncUI = (id, val) => {
-        document.getElementById(`range-${id}`).value = val;
-        document.getElementById(`num-${id}`).value = val;
+        const range = document.getElementById(`range-${id}`);
+        const num = document.getElementById(`num-${id}`);
+        if(range && num) {
+            range.value = val;
+            num.value = val;
+        }
     };
 
     syncUI('width', app.width);
+    syncUI('height', app.height); // 新增
     syncUI('avatar', app.avatarSize);
     syncUI('gap-x', app.gapX);
     syncUI('gap-y', app.gapY);
@@ -367,12 +364,11 @@ function setupEventListeners() {
         // 1. Range Input Change (Slider Drag)
         rangeInput.addEventListener('input', (e) => {
             const val = parseInt(e.target.value);
-            numInput.value = val; // Sync number box
+            numInput.value = val; 
             State.appearance[key] = val;
             
-            // 核心修改：如果是调整窗口宽度，拖动时不实时应用 Theme
-            // 避免窗口大小变化导致滑块跟手性丢失
-            if (key !== 'width') {
+            // 修改点：如果是 width 或 height，拖动时不应用样式
+            if (key !== 'width' && key !== 'height') {
                 applyTheme(State.appearance);
             }
         });
@@ -382,32 +378,28 @@ function setupEventListeners() {
             const val = parseInt(e.target.value);
             if (!isNaN(val)) {
                 State.appearance[key] = val;
-                
-                // 只有在范围内的数值才同步滑块位置，为了视觉一致性
                 if (val >= parseInt(rangeInput.min) && val <= parseInt(rangeInput.max)) {
                     rangeInput.value = val;
                 }
                 
-                // 手动输入时，如果是宽度，为了体验也不建议逐字实时缩放（比如输入400，过程是4->40->400）
-                // 所以这里也建议 width 不实时应用，或者你可以选择保留
-                if (key !== 'width') {
+                // 修改点：手动输入时，width 和 height 也不实时应用（或者你可以选择允许）
+                if (key !== 'width' && key !== 'height') {
                     applyTheme(State.appearance);
                 }
             }
         });
 
-        // 3. Save & Apply on Change (Mouse Up / Blur / Enter)
+        // 3. Save & Apply on Change (Mouse Up / Blur)
         const saveHandler = () => {
-            // 核心修改：在松开鼠标(change)时，强制应用一次 Theme
-            // 这是为了让 width 在拖动结束后生效
-            if (key === 'width') {
+            // 修改点：松开鼠标时，应用 width 和 height
+            if (key === 'width' || key === 'height') {
                 applyTheme(State.appearance);
             }
             saveAppearance();
         };
 
         rangeInput.addEventListener('change', saveHandler);
-        numInput.addEventListener('change', saveHandler); // Handle Enter key or Blur
+        numInput.addEventListener('change', saveHandler);
 
         // 4. Ghost Mode Logic
         const startGhost = () => {
@@ -426,7 +418,9 @@ function setupEventListeners() {
         window.addEventListener('touchend', endGhost);
     };
 
+    // 绑定新的 slider
     bindSlider('width', 'width');
+    bindSlider('height', 'height'); // 新增绑定
     bindSlider('avatar', 'avatarSize');
     bindSlider('gap-x', 'gapX');
     bindSlider('gap-y', 'gapY');
