@@ -463,30 +463,63 @@ function setupEventListeners() {
         deletedPanel.classList.add('hidden');
         settingsPanel.classList.remove('hidden');
     };
+    // --- Export Configuration (导出配置) ---
     document.getElementById('btn-export').onclick = async () => {
-        const data = await chrome.storage.local.get(null);
+        // 1. 定义我们只想导出的配置项 (不包含 streamingInfo 等缓存数据)
+        const keysToExport = [
+            'appearance',                  // 外观设置
+            'streamerStates',              // 关注/特别关注列表
+            'deletedStreamers',            // 隐藏列表
+            'refreshInterval',             // 刷新间隔
+            'notificationPreference',      // 通知偏好
+            'browserNotificationsEnabled'  // 浏览器通知开关
+        ];
+
+        // 2. 获取数据
+        const data = await chrome.storage.local.get(keysToExport);
+
+        // 3. 生成文件名 (带时间戳)
+        const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        const filename = `bili-monitor-settings-${date}.json`;
+
+        // 4. 创建并下载文件
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `bili-config-${new Date().toISOString().slice(0,10)}.json`;
+        a.download = filename;
         a.click();
+        
+        // 清理
+        URL.revokeObjectURL(url);
     };
+    // --- Import Configuration (导入配置) ---
     document.getElementById('btn-import').onclick = () => document.getElementById('file-import').click();
     document.getElementById('file-import').onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
+
         const reader = new FileReader();
         reader.onload = async (ev) => {
             try {
                 const config = JSON.parse(ev.target.result);
+                
+                // 简单的校验：确保里面至少有一些我们认识的配置，防止导入错误文件
+                // (这里不做严格校验，以免未来增加字段后旧备份失效)
+                
+                // 保存到存储
                 await chrome.storage.local.set(config);
-                location.reload();
+                
+                // 导入后刷新页面以应用所有新设置 (包括外观)
+                location.reload(); 
             } catch (err) {
-                alert('Invalid file');
+                alert('Invalid configuration file / 配置文件格式错误');
+                console.error(err);
             }
         };
         reader.readAsText(file);
+        // 重置 input value，允许重复导入同一个文件
+        e.target.value = '';
     };
 }
 
