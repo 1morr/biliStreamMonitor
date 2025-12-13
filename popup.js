@@ -3,12 +3,33 @@
 const State = {
     streamers: [],
     deletedUids: [],
-    states: {}, // {uid: 'favorite' | 'like'}
+    states: {}, 
     newlyStreaming: [],
     refreshInterval: 60,
     notificationPref: '2',
     browserNotify: true,
+    // 外观配置
+    appearance: {
+        width: 360,
+        avatarSize: 54,
+        cardPadding: 10,
+        fontSize: 12,
+        gapX: 12,
+        gapY: 12,
+        showCardBg: true
+    },
     roomCache: new Map() 
+};
+
+// 默认外观
+const DEFAULT_APPEARANCE = {
+    width: 360,
+    avatarSize: 54,
+    cardPadding: 10,
+    fontSize: 12,
+    gapX: 12,
+    gapY: 12,
+    showCardBg: true
 };
 
 // --- DOM Elements ---
@@ -27,7 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadData();
     setupEventListeners();
     
-    // Clear new streamer highlight when popup opens
+    // Clear new streamer highlight
     if (State.newlyStreaming.length > 0) {
         chrome.storage.local.set({ newlyStreaming: [] });
         chrome.action.setBadgeText({ text: '' });
@@ -48,7 +69,8 @@ async function loadData() {
         const storage = await chrome.storage.local.get([
             'streamingInfo', 'deletedStreamers', 'streamerStates', 
             'newlyStreaming', 'refreshInterval', 
-            'notificationPreference', 'browserNotificationsEnabled'
+            'notificationPreference', 'browserNotificationsEnabled',
+            'appearance'
         ]);
 
         State.streamers = storage.streamingInfo || [];
@@ -58,6 +80,10 @@ async function loadData() {
         State.refreshInterval = storage.refreshInterval || 60;
         State.notificationPref = storage.notificationPreference || '2';
         State.browserNotify = storage.browserNotificationsEnabled !== false;
+        State.appearance = { ...DEFAULT_APPEARANCE, ...storage.appearance }; 
+
+        // Apply Theme
+        applyTheme(State.appearance);
 
         renderGrid();
         updateSettingsUI();
@@ -68,9 +94,30 @@ async function loadData() {
     }
 }
 
-// --- Rendering (核心修复：重写排序逻辑) ---
+// --- Theme Logic ---
+function applyTheme(appearance) {
+    const root = document.documentElement;
+    root.style.setProperty('--app-width', `${appearance.width}px`);
+    root.style.setProperty('--avatar-size', `${appearance.avatarSize}px`);
+    root.style.setProperty('--card-padding', `${appearance.cardPadding}px`);
+    root.style.setProperty('--base-font-size', `${appearance.fontSize}px`);
+    root.style.setProperty('--grid-gap-x', `${appearance.gapX}px`);
+    root.style.setProperty('--grid-gap-y', `${appearance.gapY}px`);
+
+    // Handle Card Background
+    if (appearance.showCardBg) {
+        gridContainer.classList.remove('minimal-mode');
+    } else {
+        gridContainer.classList.add('minimal-mode');
+    }
+}
+
+function saveAppearance() {
+    chrome.storage.local.set({ appearance: State.appearance });
+}
+
+// --- Rendering ---
 function renderGrid() {
-    // 过滤掉被隐藏的主播
     const visibleStreamers = State.streamers.filter(s => !State.deletedUids.includes(s.uid));
 
     if (visibleStreamers.length === 0) {
@@ -82,34 +129,23 @@ function renderGrid() {
         return;
     }
 
-    // 修复：使用权重积分制进行排序，确保 直播 > 关注 > 等级
+    // Sort: Live > Fav > Like > Level
     visibleStreamers.sort((a, b) => {
         const getWeight = (s) => {
             let weight = 0;
-            // 确保 live_status 是数字类型 (1=直播, 0=闲置)
             const status = Number(s.live_status);
-            
-            // 1. 直播状态 (最高优先级 - 权重 10,000,000)
             if (status === 1) weight += 10000000;
-            
-            // 2. 关注状态 (次级优先级 - 权重 100,000 ~ 200,000)
             const state = State.states[s.uid];
             if (state === 'favorite') weight += 200000;
             else if (state === 'like') weight += 100000;
-            
-            // 3. 勋章等级 (微调 - 权重 1 ~ 100)
             weight += (Number(s.medal_level) || 0);
-            
             return weight;
         };
-
-        // 降序排列 (高权重在前)
         return getWeight(b) - getWeight(a);
     });
 
     gridContainer.innerHTML = visibleStreamers.map(s => createCardHTML(s)).join('');
     
-    // Add event listeners
     document.querySelectorAll('.streamer-card').forEach(card => {
         card.addEventListener('click', () => openStream(card.dataset.link));
         card.addEventListener('contextmenu', (e) => showContextMenu(e, card.dataset.uid));
@@ -119,7 +155,6 @@ function renderGrid() {
 }
 
 function createCardHTML(s) {
-    // 强制类型转换为数字进行判断
     const isLive = Number(s.live_status) === 1;
     const isNew = State.newlyStreaming.includes(s.uid);
     const state = State.states[s.uid];
@@ -147,35 +182,29 @@ function createCardHTML(s) {
     `;
 }
 
-// --- Tooltip & Preview Logic ---
+// --- Tooltip Logic ---
 let hoverTimeout;
 let currentHoverUid = null;
 
 async function handleHover(e, uid, roomId) {
     const streamer = State.streamers.find(s => String(s.uid) === String(uid));
-    
-    // 只有直播中的才显示预览
     if (!streamer || Number(streamer.live_status) !== 1) return;
 
     currentHoverUid = uid;
     updateTooltipPosition(e.target);
 
-    // Clear previous timeout
     clearTimeout(hoverTimeout);
     
     hoverTimeout = setTimeout(async () => {
         if (currentHoverUid !== uid) return;
         
-        // Show tooltip, reset states
         previewTooltip.classList.remove('hidden');
         previewTooltip.classList.add('visible');
         
-        // Reset Loader & Image
         previewImg.classList.remove('loaded');
         previewLoader.classList.remove('hidden'); 
         previewImg.src = ''; 
         
-        // Check cache
         let roomData = State.roomCache.get(roomId);
         
         if (!roomData) {
@@ -198,21 +227,16 @@ async function handleHover(e, uid, roomId) {
 
         if (roomData) {
             const thumb = roomData.keyframe || roomData.user_cover;
-            
             previewImg.src = thumb;
-            
             previewImg.onload = () => {
                 previewImg.classList.add('loaded');
                 previewLoader.classList.add('hidden');
             };
-            
             if (previewImg.complete) {
                 previewImg.classList.add('loaded');
                 previewLoader.classList.add('hidden');
             }
-            
             previewTitle.textContent = roomData.title;
-            
             const startTime = new Date(roomData.live_time.replace(' ', 'T'));
             const diff = Date.now() - startTime.getTime();
             const hrs = Math.floor(diff / 3600000);
@@ -240,18 +264,14 @@ function updateTooltipPosition(targetEl) {
     const tooltipHeight = 210;
     const tooltipWidth = 260;
     const gap = 10;
-
     let top = rect.bottom + gap;
     let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
 
     if (left < 10) left = 10;
-    if (left + tooltipWidth > window.innerWidth - 10) left = window.innerWidth - tooltipWidth - 10;
+    const appWidth = State.appearance.width;
+    if (left + tooltipWidth > appWidth - 10) left = appWidth - tooltipWidth - 10;
     
-    // Flip if close to bottom
-    if (top + tooltipHeight > window.innerHeight) {
-        top = rect.top - tooltipHeight - gap;
-    }
-
+    if (top + tooltipHeight > window.innerHeight) top = rect.top - tooltipHeight - gap;
     previewTooltip.style.top = `${top}px`;
     previewTooltip.style.left = `${left}px`;
 }
@@ -265,9 +285,9 @@ function showContextMenu(e, uid) {
     
     let x = e.clientX;
     let y = e.clientY;
+    const menuWidth = 140; 
     
-    if (x + 130 > window.innerWidth) x = window.innerWidth - 140;
-    if (y + 100 > window.innerHeight) y = window.innerHeight - 100;
+    if (x + menuWidth > State.appearance.width) x = State.appearance.width - menuWidth - 10;
     
     contextMenu.style.left = `${x}px`;
     contextMenu.style.top = `${y}px`;
@@ -289,16 +309,10 @@ contextMenu.addEventListener('click', async (e) => {
     if (action === 'hide') {
         State.deletedUids.push(Number(uid));
         delete State.states[uid];
-        await chrome.storage.local.set({ 
-            deletedStreamers: State.deletedUids,
-            streamerStates: State.states 
-        });
+        await chrome.storage.local.set({ deletedStreamers: State.deletedUids, streamerStates: State.states });
     } else {
-        if (State.states[uid] === action) {
-            delete State.states[uid];
-        } else {
-            State.states[uid] = action;
-        }
+        if (State.states[uid] === action) delete State.states[uid];
+        else State.states[uid] = action;
         await chrome.storage.local.set({ streamerStates: State.states });
     }
 
@@ -311,6 +325,23 @@ function updateSettingsUI() {
     document.getElementById('input-interval').value = State.refreshInterval;
     document.getElementById('select-notification').value = State.notificationPref;
     document.getElementById('check-browser-notify').checked = State.browserNotify;
+
+    const app = State.appearance;
+    
+    // Helper to sync UI values
+    const syncUI = (id, val) => {
+        document.getElementById(`range-${id}`).value = val;
+        document.getElementById(`num-${id}`).value = val;
+    };
+
+    syncUI('width', app.width);
+    syncUI('avatar', app.avatarSize);
+    syncUI('gap-x', app.gapX);
+    syncUI('gap-y', app.gapY);
+    syncUI('padding', app.cardPadding);
+    syncUI('font', app.fontSize);
+
+    document.getElementById('check-card-bg').checked = app.showCardBg;
 }
 
 function setupEventListeners() {
@@ -320,33 +351,103 @@ function setupEventListeners() {
     document.getElementById('btn-manual-refresh').onclick = async () => {
         const btn = document.getElementById('btn-manual-refresh');
         const originalText = btn.innerHTML;
-        
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
         btn.disabled = true;
-
         await chrome.runtime.sendMessage({ action: 'updateStreamers' });
         await loadData();
-        
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }, 800);
+        setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 800);
     };
 
+    // --- Appearance Sliders ---
+    const bindSlider = (id, key) => {
+        const rangeInput = document.getElementById(`range-${id}`);
+        const numInput = document.getElementById(`num-${id}`);
+        const container = document.getElementById(`wrap-${id}`);
+        
+        // 1. Range Input Change (Slider Drag)
+        rangeInput.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            numInput.value = val; // Sync number box
+            State.appearance[key] = val;
+            applyTheme(State.appearance);
+        });
+
+        // 2. Number Input Change (Manual Typing)
+        numInput.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            if (!isNaN(val)) {
+                // Don't limit the range input visually if user types something out of bounds
+                // Just sync logic
+                State.appearance[key] = val;
+                // Only sync slider if within bounds (optional, but looks better)
+                if (val >= rangeInput.min && val <= rangeInput.max) {
+                    rangeInput.value = val;
+                }
+                applyTheme(State.appearance);
+            }
+        });
+
+        // 3. Save on Change (Mouse Up / Blur)
+        const saveHandler = () => saveAppearance();
+        rangeInput.addEventListener('change', saveHandler);
+        numInput.addEventListener('change', saveHandler);
+
+        // 4. Ghost Mode Logic
+        const startGhost = () => {
+            settingsPanel.classList.add('ghost-mode');
+            container.classList.add('active-control');
+        };
+        const endGhost = () => {
+            settingsPanel.classList.remove('ghost-mode');
+            container.classList.remove('active-control');
+        };
+
+        // Listen on range input for dragging
+        rangeInput.addEventListener('mousedown', startGhost);
+        rangeInput.addEventListener('touchstart', startGhost, {passive: true});
+        
+        // Listen on manual input for focus (optional, usually not needed for typing)
+        // numInput.addEventListener('focus', startGhost); 
+
+        // Global mouseup to cancel ghost mode
+        window.addEventListener('mouseup', endGhost);
+        window.addEventListener('touchend', endGhost);
+    };
+
+    bindSlider('width', 'width');
+    bindSlider('avatar', 'avatarSize');
+    bindSlider('gap-x', 'gapX');
+    bindSlider('gap-y', 'gapY');
+    bindSlider('padding', 'cardPadding');
+    bindSlider('font', 'fontSize');
+
+    // Card Background Toggle
+    document.getElementById('check-card-bg').addEventListener('change', (e) => {
+        State.appearance.showCardBg = e.target.checked;
+        applyTheme(State.appearance);
+        saveAppearance();
+    });
+
+    // Reset Button
+    document.getElementById('btn-reset-appearance').onclick = () => {
+        State.appearance = { ...DEFAULT_APPEARANCE };
+        applyTheme(State.appearance);
+        saveAppearance();
+        updateSettingsUI();
+    };
+
+    // --- General Settings ---
     document.getElementById('input-interval').onchange = (e) => {
         const val = Math.max(30, parseInt(e.target.value));
         chrome.storage.local.set({ refreshInterval: val });
         chrome.runtime.sendMessage({ action: 'setRefreshInterval', interval: val });
     };
-
     document.getElementById('select-notification').onchange = (e) => {
         chrome.storage.local.set({ notificationPreference: e.target.value });
     };
-
     document.getElementById('check-browser-notify').onchange = (e) => {
         chrome.storage.local.set({ browserNotificationsEnabled: e.target.checked });
     };
-
     document.getElementById('btn-deleted').onclick = () => {
         settingsPanel.classList.add('hidden');
         deletedPanel.classList.remove('hidden');
@@ -356,7 +457,6 @@ function setupEventListeners() {
         deletedPanel.classList.add('hidden');
         settingsPanel.classList.remove('hidden');
     };
-
     document.getElementById('btn-export').onclick = async () => {
         const data = await chrome.storage.local.get(null);
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -366,7 +466,6 @@ function setupEventListeners() {
         a.download = `bili-config-${new Date().toISOString().slice(0,10)}.json`;
         a.click();
     };
-
     document.getElementById('btn-import').onclick = () => document.getElementById('file-import').click();
     document.getElementById('file-import').onchange = (e) => {
         const file = e.target.files[0];
@@ -391,7 +490,6 @@ function renderDeletedList() {
         container.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">List is empty</div>';
         return;
     }
-    
     const listHTML = State.deletedUids.map(uid => {
         const info = State.streamers.find(s => s.uid === uid) || { streamer_name: 'Unknown', streamer_icon: 'images/icon128.png' };
         return `
@@ -402,7 +500,6 @@ function renderDeletedList() {
             </div>
         `;
     }).join('');
-    
     container.innerHTML = listHTML;
 }
 

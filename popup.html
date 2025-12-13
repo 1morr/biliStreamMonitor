@@ -23,7 +23,7 @@
             </div>
         </main>
 
-        <!-- 悬浮设置按钮 (右下角) -->
+        <!-- 悬浮设置按钮 -->
         <button id="fab-settings" class="floating-btn" title="Settings">
             <i class="fas fa-cog"></i>
         </button>
@@ -37,11 +37,85 @@
                 </div>
                 
                 <div class="settings-body">
-                    <!-- 刷新按钮移到这里 -->
                     <button id="btn-manual-refresh" class="btn primary full-width">
                         <i class="fas fa-sync-alt"></i> Refresh Data
                     </button>
+                    
                     <div class="divider"></div>
+
+                    <!-- 外观设置 -->
+                    <h4 class="settings-section-title">Appearance</h4>
+                    
+                    <!-- 窗口宽度 -->
+                    <div class="setting-item range-item" id="wrap-width">
+                        <div class="label-row">
+                            <label>Window Width</label>
+                            <input type="number" id="num-width" class="manual-input">
+                        </div>
+                        <input type="range" id="range-width" min="200" max="800" step="10">
+                    </div>
+
+                    <!-- 头像大小 -->
+                    <div class="setting-item range-item" id="wrap-avatar">
+                        <div class="label-row">
+                            <label>Avatar Size</label>
+                            <input type="number" id="num-avatar" class="manual-input">
+                        </div>
+                        <input type="range" id="range-avatar" min="20" max="150" step="2">
+                    </div>
+
+                    <!-- 左右间距 (支持负数) -->
+                    <div class="setting-item range-item" id="wrap-gap-x">
+                        <div class="label-row">
+                            <label>Column Gap (X)</label>
+                            <input type="number" id="num-gap-x" class="manual-input">
+                        </div>
+                        <input type="range" id="range-gap-x" min="-20" max="100" step="1">
+                    </div>
+
+                    <!-- 上下间距 (支持负数) -->
+                    <div class="setting-item range-item" id="wrap-gap-y">
+                        <div class="label-row">
+                            <label>Row Gap (Y)</label>
+                            <input type="number" id="num-gap-y" class="manual-input">
+                        </div>
+                        <input type="range" id="range-gap-y" min="-20" max="100" step="1">
+                    </div>
+
+                    <!-- 卡片内边距 -->
+                    <div class="setting-item range-item" id="wrap-padding">
+                        <div class="label-row">
+                            <label>Card Padding</label>
+                            <input type="number" id="num-padding" class="manual-input">
+                        </div>
+                        <input type="range" id="range-padding" min="0" max="50" step="1">
+                    </div>
+
+                    <!-- 字体大小 -->
+                    <div class="setting-item range-item" id="wrap-font">
+                        <div class="label-row">
+                            <label>Text Size</label>
+                            <input type="number" id="num-font" class="manual-input">
+                        </div>
+                        <input type="range" id="range-font" min="8" max="30" step="1">
+                    </div>
+                    
+                    <div class="setting-item toggle-row">
+                        <label>Show Card Background</label>
+                        <label class="switch">
+                            <input type="checkbox" id="check-card-bg" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    
+                    <button id="btn-reset-appearance" class="btn outline full-width" style="margin-top:8px; font-size:11px;">
+                        Reset Appearance
+                    </button>
+
+                    <div class="divider"></div>
+
+                    <!-- 常规设置 -->
+                    <h4 class="settings-section-title">General</h4>
 
                     <div class="setting-item">
                         <label>Refresh Interval (sec)</label>
