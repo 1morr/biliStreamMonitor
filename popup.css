@@ -83,20 +83,57 @@ body {
 .streamer-card.offline { filter: grayscale(100%); opacity: 0.6; }
 .streamer-card.offline:hover { filter: grayscale(0%); opacity: 1; background: rgba(255, 255, 255, 0.8); transform: translateY(-2px); z-index: 10; }
 
-.avatar-wrapper { position: relative; width: var(--avatar-size); height: var(--avatar-size); margin-bottom: 6px; }
-.avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-.status-dot { position: absolute; bottom: 0; right: 0; width: 12px; height: 12px; background: #ccc; border-radius: 50%; border: 2px solid white; }
-.status-dot.live { background: var(--accent-red); box-shadow: 0 0 0 2px rgba(255, 59, 48, 0.2); }
-.status-dot.new-live { animation: pulse 1.5s infinite; }
+/* Elements inside card */
+.avatar-wrapper {
+    position: relative;
+    width: var(--avatar-size);
+    height: var(--avatar-size);
+    margin-bottom: 6px;
+}
+
+.avatar-wrapper img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    box-sizing: border-box; /* 确保边框计算在内 */
+}
+
+/* 
+   核心修改：新的动态徽章 
+   使用 calc() 基于头像大小自动计算徽章大小 
+   比例设定：徽章大约是头像的 30% 大小
+*/
+.avatar-badge {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    
+    /* 动态大小：永远是头像尺寸的 1/3.2 */
+    width: calc(var(--avatar-size) / 3.2);
+    height: calc(var(--avatar-size) / 3.2);
+    
+    /* 动态字体：确保图标居中且大小合适 */
+    font-size: calc(var(--avatar-size) / 5.5);
+    
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 2;
+    
+    /* 稍微往外偏移一点点，更有“附着”感 */
+    transform: translate(10%, 10%);
+}
+.avatar-badge.fav { color: var(--accent-red); }
+.avatar-badge.like { color: var(--accent-orange); }
 .streamer-name { font-size: var(--base-font-size); font-weight: 600; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; color: var(--text-primary); }
 .medal-info { font-size: calc(var(--base-font-size) - 2px); color: var(--text-secondary); background: rgba(255,255,255,0.6); padding: 1px 6px; border-radius: 8px; max-width: 95%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .grid-view.minimal-mode .medal-info { background: rgba(255,255,255,0.4); }
-
-/* Badges */
-.card-badges { position: absolute; top: -4px; right: -4px; display: flex; gap: 2px; z-index: 2; }
-.badge-icon { width: 18px; height: 18px; border-radius: 50%; background: white; display: flex; justify-content: center; align-items: center; font-size: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
-.badge-icon.fav { color: var(--accent-red); }
-.badge-icon.like { color: var(--accent-orange); }
 
 /* FAB */
 .floating-btn { position: fixed; bottom: 20px; right: 20px; width: 44px; height: 44px; border-radius: 50%; background: white; border: none; box-shadow: var(--shadow-float); color: var(--text-primary); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s, background 0.2s; z-index: 50; }

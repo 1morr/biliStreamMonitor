@@ -149,12 +149,17 @@ function renderGrid() {
 
 function createCardHTML(s) {
     const isLive = Number(s.live_status) === 1;
-    const isNew = State.newlyStreaming.includes(s.uid);
     const state = State.states[s.uid];
     
-    let badges = '';
-    if (state === 'favorite') badges = `<div class="badge-icon fav"><i class="fas fa-heart"></i></div>`;
-    else if (state === 'like') badges = `<div class="badge-icon like"><i class="fas fa-star"></i></div>`;
+    // 逻辑变更：
+    // 1. 只有是 'favorite' 或 'like' 时才生成徽章
+    // 2. 徽章将替代原本的 live dot，放在头像右下角
+    let badgeHTML = '';
+    if (state === 'favorite') {
+        badgeHTML = `<div class="avatar-badge fav"><i class="fas fa-heart"></i></div>`;
+    } else if (state === 'like') {
+        badgeHTML = `<div class="avatar-badge like"><i class="fas fa-star"></i></div>`;
+    }
 
     return `
         <div class="streamer-card ${!isLive ? 'offline' : ''}" 
@@ -162,11 +167,11 @@ function createCardHTML(s) {
              data-link="${s.link}"
              data-roomid="${s.roomId}">
             
-            ${badges ? `<div class="card-badges">${badges}</div>` : ''}
-            
             <div class="avatar-wrapper">
                 <img src="${s.streamer_icon}" loading="lazy" alt="${s.streamer_name}">
-                ${isLive ? `<div class="status-dot live ${isNew ? 'new-live' : ''}"></div>` : ''}
+                
+                <!-- 徽章现在直接放在这里，并且只有 fav/like 才有 -->
+                ${badgeHTML}
             </div>
             
             <div class="streamer-name">${s.streamer_name}</div>
