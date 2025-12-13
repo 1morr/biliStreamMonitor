@@ -121,15 +121,18 @@ body {
 
 /* Ghost Mode Styles - 核心样式 */
 .settings-overlay.ghost-mode {
-    background: transparent; /* 背景透明 */
+    background: transparent;
     backdrop-filter: none;
-    pointer-events: none; /* 允许穿透，但实际上我们还是在拖动滑块 */
+    -webkit-backdrop-filter: none; /* 确保移除背景模糊 */
+    pointer-events: none;
 }
 
 .settings-overlay.ghost-mode .settings-card {
-    background: transparent; /* 卡片透明 */
+    background: transparent;
+    backdrop-filter: none;         /* <--- 关键修改：移除卡片本身的模糊滤镜 */
+    -webkit-backdrop-filter: none; /* <--- 关键修改：兼容性写法 */
     box-shadow: none;
-    overflow: visible; /* 允许正在拖动的滑块显示 */
+    overflow: visible;
 }
 
 /* 在 Ghost Mode 下隐藏除了 Header 和 Active Item 以外的所有元素 */
@@ -177,12 +180,24 @@ body {
 }
 .manual-input:focus { outline: 2px solid var(--accent-blue); background: white; }
 /* Hide spin buttons */
-.manual-input::-webkit-outer-spin-button, .manual-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.manual-input::-webkit-outer-spin-button, 
+.manual-input::-webkit-inner-spin-button { 
+    -webkit-appearance: none; 
+    appearance: none; /* 添加这一行 */
+    margin: 0; 
+}
 
 .setting-item input[type="number"]:not(.manual-input), .setting-item select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #e5e5e5; background: white; box-sizing: border-box; }
 
 /* Range Inputs */
-input[type=range] { width: 100%; margin: 5px 0; background: transparent; -webkit-appearance: none; }
+input[type=range] {
+    width: 100%;
+    margin: 5px 0;
+    background: transparent;
+    -webkit-appearance: none; /* Chrome, Safari, Edge */
+    -moz-appearance: none;    /* Firefox */
+    appearance: none;         /* Standard */
+}
 input[type=range]:focus { outline: none; }
 input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: #e5e5e5; border-radius: 3px; }
 input[type=range]::-webkit-slider-thumb { height: 18px; width: 18px; border-radius: 50%; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); cursor: pointer; -webkit-appearance: none; margin-top: -6px; transition: transform 0.1s; }

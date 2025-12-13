@@ -369,28 +369,45 @@ function setupEventListeners() {
             const val = parseInt(e.target.value);
             numInput.value = val; // Sync number box
             State.appearance[key] = val;
-            applyTheme(State.appearance);
+            
+            // 核心修改：如果是调整窗口宽度，拖动时不实时应用 Theme
+            // 避免窗口大小变化导致滑块跟手性丢失
+            if (key !== 'width') {
+                applyTheme(State.appearance);
+            }
         });
 
         // 2. Number Input Change (Manual Typing)
         numInput.addEventListener('input', (e) => {
             const val = parseInt(e.target.value);
             if (!isNaN(val)) {
-                // Don't limit the range input visually if user types something out of bounds
-                // Just sync logic
                 State.appearance[key] = val;
-                // Only sync slider if within bounds (optional, but looks better)
-                if (val >= rangeInput.min && val <= rangeInput.max) {
+                
+                // 只有在范围内的数值才同步滑块位置，为了视觉一致性
+                if (val >= parseInt(rangeInput.min) && val <= parseInt(rangeInput.max)) {
                     rangeInput.value = val;
                 }
-                applyTheme(State.appearance);
+                
+                // 手动输入时，如果是宽度，为了体验也不建议逐字实时缩放（比如输入400，过程是4->40->400）
+                // 所以这里也建议 width 不实时应用，或者你可以选择保留
+                if (key !== 'width') {
+                    applyTheme(State.appearance);
+                }
             }
         });
 
-        // 3. Save on Change (Mouse Up / Blur)
-        const saveHandler = () => saveAppearance();
+        // 3. Save & Apply on Change (Mouse Up / Blur / Enter)
+        const saveHandler = () => {
+            // 核心修改：在松开鼠标(change)时，强制应用一次 Theme
+            // 这是为了让 width 在拖动结束后生效
+            if (key === 'width') {
+                applyTheme(State.appearance);
+            }
+            saveAppearance();
+        };
+
         rangeInput.addEventListener('change', saveHandler);
-        numInput.addEventListener('change', saveHandler);
+        numInput.addEventListener('change', saveHandler); // Handle Enter key or Blur
 
         // 4. Ghost Mode Logic
         const startGhost = () => {
@@ -402,14 +419,9 @@ function setupEventListeners() {
             container.classList.remove('active-control');
         };
 
-        // Listen on range input for dragging
         rangeInput.addEventListener('mousedown', startGhost);
         rangeInput.addEventListener('touchstart', startGhost, {passive: true});
         
-        // Listen on manual input for focus (optional, usually not needed for typing)
-        // numInput.addEventListener('focus', startGhost); 
-
-        // Global mouseup to cancel ghost mode
         window.addEventListener('mouseup', endGhost);
         window.addEventListener('touchend', endGhost);
     };
