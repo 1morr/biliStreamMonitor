@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "biliStreamMonitor",
-    "version": "1.0",
-    "description": "Monitor bilibili streamers based on your medal wall",
+    "name": "BiliStreamMonitor",
+    "version": "2.0",
+    "description": "Monitoring of Bilibili streamers based on your medal wall.",
     "permissions": [
         "cookies",
         "storage",
@@ -16,26 +16,19 @@
     "action": {
         "default_popup": "popup.html",
         "default_icon": {
-            "16": "images/icon16.png",
-            "32": "images/icon32.png",
-            "48": "images/icon48.png",
             "128": "images/icon128.png"
         }
     },
     "web_accessible_resources": [
         {
-        "resources": ["images/NA.png"],
-        "matches": ["<all_urls>"]
+            "resources": ["images/NA.png"],
+            "matches": ["<all_urls>"]
         }
     ],
     "background": {
         "service_worker": "background.js"
     },
-    
     "icons": {
-        "16": "images/icon16.png",
-        "32": "images/icon32.png",
-        "48": "images/icon48.png",
         "128": "images/icon128.png"
     }
 }
