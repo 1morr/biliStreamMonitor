@@ -41,9 +41,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadData();
     setupEventListeners();
     
+    // Always clear badge when popup is opened
+    chrome.action.setBadgeText({ text: '' });
     if (State.newlyStreaming.length > 0) {
         chrome.storage.local.set({ newlyStreaming: [] });
-        chrome.action.setBadgeText({ text: '' });
     }
 });
 

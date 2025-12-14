@@ -99,18 +99,21 @@ async function updateStreamers() {
         let badgeCount = 0;
         let badgeColorType = 'normal';
         
-        // 根据偏好计算徽章显示的列表
-        const badgeStreamers = currentLiveStreamers.filter(s => {
-            const state = streamerStates[s.uid];
+        // 根据偏好计算徽章显示的列表 (仅统计 newlyStreaming)
+        const validNewlyStreamingUids = newlyStreaming.filter(uid => {
+            const streamer = currentLiveStreamers.find(s => s.uid === uid);
+            if (!streamer) return false;
+
+            const state = streamerStates[uid];
             if (notifPref === '0') return false;
             if (notifPref === '1') return state === 'favorite';
             if (notifPref === '3') return state === 'favorite' || state === 'like';
             return true; // '2' All
         });
         
-        badgeCount = badgeStreamers.length;
-        if (badgeStreamers.some(s => streamerStates[s.uid] === 'favorite')) badgeColorType = 'favorite';
-        else if (badgeStreamers.some(s => streamerStates[s.uid] === 'like')) badgeColorType = 'like';
+        badgeCount = validNewlyStreamingUids.length;
+        if (validNewlyStreamingUids.some(uid => streamerStates[uid] === 'favorite')) badgeColorType = 'favorite';
+        else if (validNewlyStreamingUids.some(uid => streamerStates[uid] === 'like')) badgeColorType = 'like';
 
         await updateBadge(badgeCount, badgeColorType);
 
