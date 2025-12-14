@@ -3,7 +3,8 @@
     --app-width: 360px;
     --app-height: 560px;
     --avatar-size: 54px;
-    --card-padding: 10px;
+    --card-padding-y: 10px;
+    --card-padding-x: 10px;
     --base-font-size: 12px;
     --grid-gap-x: 12px;
     --grid-gap-y: 12px;
@@ -50,7 +51,8 @@ body {
     padding: 16px;
     padding-bottom: 70px;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(calc(var(--avatar-size) + 36px), 1fr)); 
+    /* 动态计算卡片最小宽度：头像大小 + 左右内边距 + 额外缓冲(16px) */
+    grid-template-columns: repeat(auto-fill, minmax(calc(var(--avatar-size) + (var(--card-padding-x) * 2) + 16px), 1fr)); 
     column-gap: var(--grid-gap-x);
     row-gap: var(--grid-gap-y);
     align-content: start;
@@ -64,7 +66,8 @@ body {
     background: rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(10px);
     border-radius: var(--radius-md);
-    padding: var(--card-padding);
+    padding: var(--card-padding-y) var(--card-padding-x);
+    box-sizing: border-box;
     display: flex; flex-direction: column; align-items: center; text-align: center;
     cursor: pointer;
     transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
@@ -90,7 +93,22 @@ body {
 .avatar-badge.fav { color: var(--accent-red); }
 .avatar-badge.like { color: var(--accent-orange); }
 
-.streamer-name { font-size: var(--base-font-size); font-weight: 600; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; color: var(--text-primary); }
+.streamer-name { 
+    font-size: var(--base-font-size); 
+    font-weight: 600; 
+    width: 100%; 
+    margin-bottom: 2px; 
+    color: var(--text-primary);
+    
+    /* Allow wrapping up to 2 lines */
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.3;
+}
 .streamer-card:not(.offline) .streamer-name { color: #0000FF; }
 .medal-info { font-size: calc(var(--base-font-size) - 2px); color: var(--text-secondary); padding: 1px 0; max-width: 95%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* .grid-view.minimal-mode .medal-info { background: rgba(255,255,255,0.4); } */

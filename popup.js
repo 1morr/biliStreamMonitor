@@ -5,7 +5,8 @@ const DEFAULT_APPEARANCE = {
     width: 360,
     height: 560,
     avatarSize: 54,
-    cardPadding: 10,
+    cardPaddingY: 10,
+    cardPaddingX: 10,
     fontSize: 12,
     gapX: 12,
     gapY: 12,
@@ -83,7 +84,20 @@ async function loadData() {
             State.browserNotify = enabled ? (storage.notificationPreference || '2') : '0';
         }
         
-        State.appearance = { ...DEFAULT_APPEARANCE, ...storage.appearance }; 
+        let loadedAppearance = storage.appearance || {};
+        
+        // Migration: cardPadding -> cardPaddingY
+        if (loadedAppearance.cardPadding !== undefined && loadedAppearance.cardPaddingY === undefined) {
+             loadedAppearance.cardPaddingY = loadedAppearance.cardPadding;
+             delete loadedAppearance.cardPadding;
+        }
+        // Migration: cardPaddingH -> cardPaddingX
+        if (loadedAppearance.cardPaddingH !== undefined && loadedAppearance.cardPaddingX === undefined) {
+             loadedAppearance.cardPaddingX = loadedAppearance.cardPaddingH;
+             delete loadedAppearance.cardPaddingH;
+        }
+        
+        State.appearance = { ...DEFAULT_APPEARANCE, ...loadedAppearance }; 
 
         applyTheme(State.appearance);
         renderGrid();
@@ -101,7 +115,8 @@ function applyTheme(appearance) {
     root.style.setProperty('--app-width', `${appearance.width}px`);
     root.style.setProperty('--app-height', `${appearance.height}px`);
     root.style.setProperty('--avatar-size', `${appearance.avatarSize}px`);
-    root.style.setProperty('--card-padding', `${appearance.cardPadding}px`);
+    root.style.setProperty('--card-padding-y', `${appearance.cardPaddingY}px`);
+    root.style.setProperty('--card-padding-x', `${appearance.cardPaddingX}px`);
     root.style.setProperty('--base-font-size', `${appearance.fontSize}px`);
     root.style.setProperty('--grid-gap-x', `${appearance.gapX}px`);
     root.style.setProperty('--grid-gap-y', `${appearance.gapY}px`);
@@ -350,7 +365,8 @@ function updateSettingsUI() {
     syncUI('avatar', app.avatarSize);
     syncUI('gap-x', app.gapX);
     syncUI('gap-y', app.gapY);
-    syncUI('padding', app.cardPadding);
+    syncUI('padding-y', app.cardPaddingY);
+    syncUI('padding-x', app.cardPaddingX);
     syncUI('font', app.fontSize);
     
     document.getElementById('check-card-bg').checked = app.showCardBg;
@@ -441,7 +457,8 @@ function setupEventListeners() {
     bindSlider('avatar', 'avatarSize');
     bindSlider('gap-x', 'gapX');
     bindSlider('gap-y', 'gapY');
-    bindSlider('padding', 'cardPadding');
+    bindSlider('padding-y', 'cardPaddingY');
+    bindSlider('padding-x', 'cardPaddingX');
     bindSlider('font', 'fontSize');
 
     document.getElementById('check-card-bg').addEventListener('change', (e) => {
