@@ -2,12 +2,12 @@
 
 // 1. 定义默认配置
 const DEFAULT_APPEARANCE = {
-    width: 360,
-    height: 560,
-    avatarSize: 54,
+    width: 500,
+    height: 550,
+    avatarSize: 80,
     cardPaddingY: 10,
     cardPaddingX: 10,
-    fontSize: 12,
+    fontSize: 14,
     gapX: 12,
     gapY: 12,
     showCardBg: true
@@ -189,6 +189,7 @@ function createCardHTML(s) {
             <div class="avatar-wrapper">
                 <img src="${s.streamer_icon}" loading="lazy" alt="${s.streamer_name}">
                 ${badgeHTML}
+                ${isLive ? '<div class="live-dot"></div>' : ''}
             </div>
             
             <div class="streamer-name">${s.streamer_name}</div>
