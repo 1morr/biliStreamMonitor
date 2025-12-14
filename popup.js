@@ -23,6 +23,8 @@ const State = {
     refreshInterval: 60,
     notificationPref: '2',
     browserNotify: '1',
+    previewMode: 'thumbnail',
+    previewMuted: true,
     appearance: { ...DEFAULT_APPEARANCE }, 
     roomCache: new Map() 
 };
@@ -31,6 +33,7 @@ const State = {
 const gridContainer = document.getElementById('grid-container');
 const previewTooltip = document.getElementById('preview-tooltip');
 const previewImg = document.getElementById('preview-img');
+const previewIframe = document.getElementById('preview-iframe');
 const previewLoader = document.getElementById('preview-loader');
 const previewTitle = document.getElementById('preview-title');
 const previewTime = document.getElementById('preview-time');
@@ -66,6 +69,7 @@ async function loadData() {
             'newlyStreaming', 'refreshInterval', 
             'notificationPreference', 'browserNotificationsEnabled',
             'browserNotificationPreference',
+            'previewMode', 'previewMuted',
             'appearance'
         ]);
 
@@ -75,6 +79,8 @@ async function loadData() {
         State.newlyStreaming = storage.newlyStreaming || [];
         State.refreshInterval = storage.refreshInterval || 60;
         State.notificationPref = storage.notificationPreference || '2';
+        State.previewMode = storage.previewMode || 'thumbnail';
+        State.previewMuted = (storage.previewMuted !== undefined) ? storage.previewMuted : true;
         
         // Data Migration for browserNotify
         if (storage.browserNotificationPreference !== undefined) {
@@ -222,9 +228,15 @@ async function handleHover(e, uid, roomId) {
         previewTooltip.classList.remove('hidden');
         previewTooltip.classList.add('visible');
         
+        // Reset state
+        previewImg.classList.add('hidden');
         previewImg.classList.remove('loaded');
+        previewImg.src = '';
+        
+        previewIframe.classList.add('hidden');
+        previewIframe.src = '';
+        
         previewLoader.classList.remove('hidden'); 
-        previewImg.src = ''; 
         
         let roomData = State.roomCache.get(roomId);
         
@@ -247,16 +259,28 @@ async function handleHover(e, uid, roomId) {
         if (currentHoverUid !== uid) return;
 
         if (roomData) {
-            const thumb = roomData.keyframe || roomData.user_cover;
-            previewImg.src = thumb;
-            previewImg.onload = () => {
-                previewImg.classList.add('loaded');
-                previewLoader.classList.add('hidden');
-            };
-            if (previewImg.complete) {
-                previewImg.classList.add('loaded');
-                previewLoader.classList.add('hidden');
+            if (State.previewMode === 'live') {
+                const isMuted = State.previewMuted ? 1 : 0;
+                const playerUrl = `https://www.bilibili.com/blackboard/live/live-activity-player.html?cid=${roomId}&mute=${isMuted}&autoplay=1`;
+                previewIframe.src = playerUrl;
+                previewIframe.onload = () => {
+                    previewIframe.classList.remove('hidden');
+                    previewLoader.classList.add('hidden');
+                };
+            } else {
+                previewImg.classList.remove('hidden');
+                const thumb = roomData.keyframe || roomData.user_cover;
+                previewImg.src = thumb;
+                previewImg.onload = () => {
+                    previewImg.classList.add('loaded');
+                    previewLoader.classList.add('hidden');
+                };
+                if (previewImg.complete) {
+                    previewImg.classList.add('loaded');
+                    previewLoader.classList.add('hidden');
+                }
             }
+
             previewTitle.textContent = roomData.title;
             const startTime = new Date(roomData.live_time.replace(' ', 'T'));
             const diff = Date.now() - startTime.getTime();
@@ -276,6 +300,7 @@ function handleLeave() {
         if (!currentHoverUid) {
             previewTooltip.classList.add('hidden');
             previewImg.src = ''; 
+            previewIframe.src = '';
         }
     }, 200);
 }
@@ -354,6 +379,15 @@ function updateSettingsUI() {
     document.getElementById('input-interval').value = State.refreshInterval;
     document.getElementById('select-notification').value = State.notificationPref;
     document.getElementById('select-browser-notify').value = State.browserNotify;
+    document.getElementById('select-preview-mode').value = State.previewMode;
+
+    const soundSettings = document.getElementById('sound-settings-group');
+    if (State.previewMode === 'live') {
+        soundSettings.classList.remove('hidden');
+    } else {
+        soundSettings.classList.add('hidden');
+    }
+    document.getElementById('check-mute').checked = State.previewMuted;
 
     const app = State.appearance;
     
@@ -508,6 +542,15 @@ function setupEventListeners() {
     document.getElementById('select-browser-notify').onchange = (e) => {
         chrome.storage.local.set({ browserNotificationPreference: e.target.value });
     };
+    document.getElementById('select-preview-mode').onchange = (e) => {
+        State.previewMode = e.target.value;
+        chrome.storage.local.set({ previewMode: e.target.value });
+        updateSettingsUI();
+    };
+    document.getElementById('check-mute').onchange = (e) => {
+        State.previewMuted = e.target.checked;
+        chrome.storage.local.set({ previewMuted: e.target.checked });
+    };
     document.getElementById('btn-deleted').onclick = () => {
         settingsPanel.classList.add('hidden');
         deletedPanel.classList.remove('hidden');
@@ -522,7 +565,8 @@ function setupEventListeners() {
     document.getElementById('btn-export').onclick = async () => {
         const keysToExport = [
             'appearance', 'streamerStates', 'deletedStreamers', 
-            'refreshInterval', 'notificationPreference', 'browserNotificationPreference'
+            'refreshInterval', 'notificationPreference', 'browserNotificationPreference',
+            'previewMode', 'previewMuted'
         ];
         const data = await chrome.storage.local.get(keysToExport);
         const date = new Date().toISOString().slice(0, 10);
