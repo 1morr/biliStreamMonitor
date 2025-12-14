@@ -295,6 +295,9 @@ input:checked + .slider:before { transform: translateX(18px); }
 .glass-menu { position: fixed; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); padding: 6px; min-width: 130px; z-index: 300; }
 .glass-menu.hidden { display: none; }
 .menu-item { padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
+.menu-item.active i { color: var(--accent-blue); }
+.menu-item[data-action="favorite"].active i { color: var(--accent-red); }
+.menu-item[data-action="like"].active i { color: var(--accent-orange); }
 .menu-item:hover { background: var(--accent-blue); color: white; }
 .menu-item.danger:hover { background: var(--accent-red); }
 .menu-divider { height: 1px; background: #eee; margin: 4px 0; }
