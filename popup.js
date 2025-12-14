@@ -273,6 +273,14 @@ function showContextMenu(e, uid) {
     e.preventDefault();
     contextTargetUid = uid;
     
+    const items = contextMenu.querySelectorAll('.menu-item');
+    items.forEach(item => item.classList.remove('active'));
+    const state = State.states[uid];
+    if (state === 'favorite' || state === 'like') {
+        const activeItem = contextMenu.querySelector(`.menu-item[data-action="${state}"]`);
+        if (activeItem) activeItem.classList.add('active');
+    }
+    
     let x = e.clientX;
     let y = e.clientY;
     const menuWidth = 140; 
