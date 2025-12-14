@@ -20,8 +20,7 @@ BiliStreamMonitor 是一个 Chrome 浏览器扩展，基于你的 Bilibili 粉�
 
 <img width="626" height="688" alt="程序截图" src="https://github.com/user-attachments/assets/933b3e4d-b00b-4152-bd23-d1b929dafc28" />
 
-<img width="626" height="688" alt="设置截图" src="https://github.com/user-attachments/assets/7650603a-af26-4cc4-a9b4-c16db0818ebe" />
-
+<img width="626" height="688" alt="设置截图" src="https://github.com/user-attachments/assets/d99c6dca-9f3b-430d-8676-97d4bc0a7d4b" />
 
 ## 🚀 如何安装
 
