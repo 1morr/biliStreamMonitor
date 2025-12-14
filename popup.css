@@ -1,11 +1,11 @@
 :root {
     /* 外观变量 */
-    --app-width: 360px;
-    --app-height: 560px;
-    --avatar-size: 54px;
+    --app-width: 500px;
+    --app-height: 550px;
+    --avatar-size: 80px;
     --card-padding-y: 10px;
     --card-padding-x: 10px;
-    --base-font-size: 12px;
+    --base-font-size: 14px;
     --grid-gap-x: 12px;
     --grid-gap-y: 12px;
     
@@ -321,3 +321,30 @@ input:checked + .slider:before { transform: translateX(18px); }
 .menu-item.danger:hover { background: var(--accent-red); }
 .menu-divider { height: 1px; background: #eee; margin: 4px 0; }
 .loading-state { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; color: var(--text-secondary); }
+
+/* Status Dot */
+.live-dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    z-index: 10;
+    border: 2px solid white;
+    background: var(--accent-red);
+    box-shadow: 0 0 0 2px rgba(255, 59, 48, 0.2);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(255, 59, 48, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);
+    }
+}
