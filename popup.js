@@ -4,13 +4,13 @@
 const DEFAULT_APPEARANCE = {
     width: 500,
     height: 550,
-    avatarSize: 80,
+    avatarSize: 84,
     cardPaddingY: 10,
-    cardPaddingX: 10,
+    cardPaddingX: 0,
     fontSize: 14,
     gapX: 12,
     gapY: 12,
-    showCardBg: true
+    showCardBg: false
 };
 
 // 2. State
