@@ -172,6 +172,7 @@ function renderGrid() {
 function createCardHTML(s) {
     const isLive = Number(s.live_status) === 1;
     const state = State.states[s.uid];
+    const isNewLive = isLive && State.newlyStreaming.some(uid => String(uid) === String(s.uid));
     
     let badgeHTML = '';
     if (state === 'favorite') {
@@ -181,7 +182,7 @@ function createCardHTML(s) {
     }
 
     return `
-        <div class="streamer-card ${!isLive ? 'offline' : ''}" 
+        <div class="streamer-card ${!isLive ? 'offline' : ''} ${isNewLive ? 'new-live' : ''}" 
              data-uid="${s.uid}" 
              data-link="${s.link}"
              data-roomid="${s.roomId}">

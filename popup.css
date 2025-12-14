@@ -348,3 +348,25 @@ input:checked + .slider:before { transform: translateX(18px); }
         box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);
     }
 }
+
+.streamer-card.new-live .avatar-wrapper {
+    box-shadow: 0 0 0 0 rgba(255, 149, 0, 0.6);
+    border-radius: 50%;
+    animation: new-live-pulse 1.6s ease-in-out infinite;
+}
+
+.streamer-card.new-live .avatar-wrapper img {
+    border-color: var(--accent-orange);
+}
+
+@keyframes new-live-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 149, 0, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(255, 149, 0, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 149, 0, 0);
+    }
+}
