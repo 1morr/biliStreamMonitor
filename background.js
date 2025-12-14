@@ -102,7 +102,7 @@ async function updateStreamers() {
         
         // Browser Notify Preference Migration Logic
         let browserPref;
-        if (storage.browserNotificationPreference) {
+        if (storage.browserNotificationPreference !== undefined) {
             browserPref = storage.browserNotificationPreference;
         } else {
             const enabled = storage.browserNotificationsEnabled !== false;

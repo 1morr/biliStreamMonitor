@@ -63,6 +63,7 @@ async function loadData() {
             'streamingInfo', 'deletedStreamers', 'streamerStates', 
             'newlyStreaming', 'refreshInterval', 
             'notificationPreference', 'browserNotificationsEnabled',
+            'browserNotificationPreference',
             'appearance'
         ]);
 
@@ -74,7 +75,7 @@ async function loadData() {
         State.notificationPref = storage.notificationPreference || '2';
         
         // Data Migration for browserNotify
-        if (storage.browserNotificationPreference) {
+        if (storage.browserNotificationPreference !== undefined) {
             State.browserNotify = storage.browserNotificationPreference;
         } else {
             // Migration logic
