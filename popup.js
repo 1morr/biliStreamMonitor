@@ -1,6 +1,6 @@
 // popup.js
 
-// 默认外观
+// 1. 定义默认配置
 const DEFAULT_APPEARANCE = {
     width: 360,
     height: 560,
@@ -12,6 +12,7 @@ const DEFAULT_APPEARANCE = {
     showCardBg: true
 };
 
+// 2. State
 const State = {
     streamers: [],
     deletedUids: [],
@@ -20,7 +21,6 @@ const State = {
     refreshInterval: 60,
     notificationPref: '2',
     browserNotify: true,
-    // 外观配置
     appearance: { ...DEFAULT_APPEARANCE }, 
     roomCache: new Map() 
 };
@@ -41,7 +41,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadData();
     setupEventListeners();
     
-    // Clear new streamer highlight
     if (State.newlyStreaming.length > 0) {
         chrome.storage.local.set({ newlyStreaming: [] });
         chrome.action.setBadgeText({ text: '' });
@@ -75,9 +74,7 @@ async function loadData() {
         State.browserNotify = storage.browserNotificationsEnabled !== false;
         State.appearance = { ...DEFAULT_APPEARANCE, ...storage.appearance }; 
 
-        // Apply Theme
         applyTheme(State.appearance);
-
         renderGrid();
         updateSettingsUI();
 
@@ -91,7 +88,7 @@ async function loadData() {
 function applyTheme(appearance) {
     const root = document.documentElement;
     root.style.setProperty('--app-width', `${appearance.width}px`);
-    root.style.setProperty('--app-height', `${appearance.height}px`); // 新增
+    root.style.setProperty('--app-height', `${appearance.height}px`);
     root.style.setProperty('--avatar-size', `${appearance.avatarSize}px`);
     root.style.setProperty('--card-padding', `${appearance.cardPadding}px`);
     root.style.setProperty('--base-font-size', `${appearance.fontSize}px`);
@@ -122,7 +119,6 @@ function renderGrid() {
         return;
     }
 
-    // Sort: Live > Fav > Like > Level
     visibleStreamers.sort((a, b) => {
         const getWeight = (s) => {
             let weight = 0;
@@ -151,9 +147,6 @@ function createCardHTML(s) {
     const isLive = Number(s.live_status) === 1;
     const state = State.states[s.uid];
     
-    // 逻辑变更：
-    // 1. 只有是 'favorite' 或 'like' 时才生成徽章
-    // 2. 徽章将替代原本的 live dot，放在头像右下角
     let badgeHTML = '';
     if (state === 'favorite') {
         badgeHTML = `<div class="avatar-badge fav"><i class="fas fa-heart"></i></div>`;
@@ -169,8 +162,6 @@ function createCardHTML(s) {
             
             <div class="avatar-wrapper">
                 <img src="${s.streamer_icon}" loading="lazy" alt="${s.streamer_name}">
-                
-                <!-- 徽章现在直接放在这里，并且只有 fav/like 才有 -->
                 ${badgeHTML}
             </div>
             
@@ -336,17 +327,27 @@ function updateSettingsUI() {
     };
 
     syncUI('width', app.width);
-    syncUI('height', app.height); // 新增
+    syncUI('height', app.height);
     syncUI('avatar', app.avatarSize);
     syncUI('gap-x', app.gapX);
     syncUI('gap-y', app.gapY);
     syncUI('padding', app.cardPadding);
     syncUI('font', app.fontSize);
-
+    
     document.getElementById('check-card-bg').checked = app.showCardBg;
 }
 
 function setupEventListeners() {
+    // 1. Accordion Toggle
+    const btnAppearance = document.getElementById('btn-toggle-appearance');
+    const contentAppearance = document.getElementById('appearance-content');
+    const wrapperAppearance = document.querySelector('.accordion-wrapper');
+    
+    btnAppearance.onclick = () => {
+        wrapperAppearance.classList.toggle('open');
+    };
+
+    // 2. Settings Panel Open/Close
     document.getElementById('fab-settings').onclick = () => settingsPanel.classList.remove('hidden');
     document.getElementById('btn-close-settings').onclick = () => settingsPanel.classList.add('hidden');
 
@@ -366,19 +367,16 @@ function setupEventListeners() {
         const numInput = document.getElementById(`num-${id}`);
         const container = document.getElementById(`wrap-${id}`);
         
-        // 1. Range Input Change (Slider Drag)
         rangeInput.addEventListener('input', (e) => {
             const val = parseInt(e.target.value);
             numInput.value = val; 
             State.appearance[key] = val;
             
-            // 修改点：如果是 width 或 height，拖动时不应用样式
             if (key !== 'width' && key !== 'height') {
                 applyTheme(State.appearance);
             }
         });
 
-        // 2. Number Input Change (Manual Typing)
         numInput.addEventListener('input', (e) => {
             const val = parseInt(e.target.value);
             if (!isNaN(val)) {
@@ -386,17 +384,13 @@ function setupEventListeners() {
                 if (val >= parseInt(rangeInput.min) && val <= parseInt(rangeInput.max)) {
                     rangeInput.value = val;
                 }
-                
-                // 修改点：手动输入时，width 和 height 也不实时应用（或者你可以选择允许）
                 if (key !== 'width' && key !== 'height') {
                     applyTheme(State.appearance);
                 }
             }
         });
 
-        // 3. Save & Apply on Change (Mouse Up / Blur)
         const saveHandler = () => {
-            // 修改点：松开鼠标时，应用 width 和 height
             if (key === 'width' || key === 'height') {
                 applyTheme(State.appearance);
             }
@@ -406,7 +400,7 @@ function setupEventListeners() {
         rangeInput.addEventListener('change', saveHandler);
         numInput.addEventListener('change', saveHandler);
 
-        // 4. Ghost Mode Logic
+        // Ghost Mode
         const startGhost = () => {
             settingsPanel.classList.add('ghost-mode');
             container.classList.add('active-control');
@@ -423,23 +417,20 @@ function setupEventListeners() {
         window.addEventListener('touchend', endGhost);
     };
 
-    // 绑定新的 slider
     bindSlider('width', 'width');
-    bindSlider('height', 'height'); // 新增绑定
+    bindSlider('height', 'height');
     bindSlider('avatar', 'avatarSize');
     bindSlider('gap-x', 'gapX');
     bindSlider('gap-y', 'gapY');
     bindSlider('padding', 'cardPadding');
     bindSlider('font', 'fontSize');
 
-    // Card Background Toggle
     document.getElementById('check-card-bg').addEventListener('change', (e) => {
         State.appearance.showCardBg = e.target.checked;
         applyTheme(State.appearance);
         saveAppearance();
     });
 
-    // Reset Button
     document.getElementById('btn-reset-appearance').onclick = () => {
         State.appearance = { ...DEFAULT_APPEARANCE };
         applyTheme(State.appearance);
@@ -468,62 +459,41 @@ function setupEventListeners() {
         deletedPanel.classList.add('hidden');
         settingsPanel.classList.remove('hidden');
     };
-    // --- Export Configuration (导出配置) ---
+
+    // --- Export / Import ---
     document.getElementById('btn-export').onclick = async () => {
-        // 1. 定义我们只想导出的配置项 (不包含 streamingInfo 等缓存数据)
         const keysToExport = [
-            'appearance',                  // 外观设置
-            'streamerStates',              // 关注/特别关注列表
-            'deletedStreamers',            // 隐藏列表
-            'refreshInterval',             // 刷新间隔
-            'notificationPreference',      // 通知偏好
-            'browserNotificationsEnabled'  // 浏览器通知开关
+            'appearance', 'streamerStates', 'deletedStreamers', 
+            'refreshInterval', 'notificationPreference', 'browserNotificationsEnabled'
         ];
-
-        // 2. 获取数据
         const data = await chrome.storage.local.get(keysToExport);
-
-        // 3. 生成文件名 (带时间戳)
-        const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        const date = new Date().toISOString().slice(0, 10);
         const filename = `bili-monitor-settings-${date}.json`;
-
-        // 4. 创建并下载文件
+        
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
         a.click();
-        
-        // 清理
         URL.revokeObjectURL(url);
     };
-    // --- Import Configuration (导入配置) ---
+
     document.getElementById('btn-import').onclick = () => document.getElementById('file-import').click();
     document.getElementById('file-import').onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = async (ev) => {
             try {
                 const config = JSON.parse(ev.target.result);
-                
-                // 简单的校验：确保里面至少有一些我们认识的配置，防止导入错误文件
-                // (这里不做严格校验，以免未来增加字段后旧备份失效)
-                
-                // 保存到存储
                 await chrome.storage.local.set(config);
-                
-                // 导入后刷新页面以应用所有新设置 (包括外观)
-                location.reload(); 
+                location.reload();
             } catch (err) {
-                alert('Invalid configuration file / 配置文件格式错误');
-                console.error(err);
+                alert('Invalid file');
             }
         };
         reader.readAsText(file);
-        // 重置 input value，允许重复导入同一个文件
         e.target.value = '';
     };
 }

@@ -33,129 +33,150 @@
             <div class="settings-card glass-panel">
                 <div class="settings-header">
                     <h3>Settings</h3>
-                    <button id="btn-close-settings" class="icon-btn"><i class="fas fa-times"></i></button>
+                    <button id="btn-close-settings" class="icon-btn close-btn"><i class="fas fa-times"></i></button>
                 </div>
                 
                 <div class="settings-body">
+                    <!-- 刷新按钮 -->
                     <button id="btn-manual-refresh" class="btn primary full-width">
                         <i class="fas fa-sync-alt"></i> Refresh Data
                     </button>
                     
-                    <div class="divider"></div>
+                    <div class="spacer"></div>
 
-                    <!-- 外观设置 -->
-                    <h4 class="settings-section-title">Appearance</h4>
-                    
-                    <!-- 窗口宽度 -->
-                    <div class="setting-item range-item" id="wrap-width">
-                        <div class="label-row">
-                            <label>Window Width</label>
-                            <input type="number" id="num-width" class="manual-input">
+                    <!-- 外观设置 (手风琴) -->
+                    <div class="accordion-wrapper">
+                        <button id="btn-toggle-appearance" class="accordion-header">
+                            <div class="header-left">
+                                <div class="icon-box"><i class="fas fa-paint-brush"></i></div>
+                                <span>Appearance</span>
+                            </div>
+                            <i class="fas fa-chevron-down arrow-icon"></i>
+                        </button>
+                        
+                        <div id="appearance-content" class="accordion-content">
+                            <div class="accordion-inner">
+                                <!-- 窗口宽度 -->
+                                <div class="setting-item range-item" id="wrap-width">
+                                    <div class="label-row">
+                                        <label>Window Width</label>
+                                        <input type="number" id="num-width" class="manual-input">
+                                    </div>
+                                    <input type="range" id="range-width" min="300" max="800" step="10">
+                                </div>
+
+                                <!-- 窗口高度 (Max limited to 600 due to Chrome constraints) -->
+                                <div class="setting-item range-item" id="wrap-height">
+                                    <div class="label-row">
+                                        <label>Window Height</label>
+                                        <input type="number" id="num-height" class="manual-input">
+                                    </div>
+                                    <input type="range" id="range-height" min="300" max="600" step="10">
+                                </div>
+
+                                <!-- 头像大小 -->
+                                <div class="setting-item range-item" id="wrap-avatar">
+                                    <div class="label-row">
+                                        <label>Avatar Size</label>
+                                        <input type="number" id="num-avatar" class="manual-input">
+                                    </div>
+                                    <input type="range" id="range-avatar" min="30" max="80" step="2">
+                                </div>
+
+                                <!-- 左右间距 -->
+                                <div class="setting-item range-item" id="wrap-gap-x">
+                                    <div class="label-row">
+                                        <label>Column Gap (X)</label>
+                                        <input type="number" id="num-gap-x" class="manual-input">
+                                    </div>
+                                    <input type="range" id="range-gap-x" min="0" max="30" step="2">
+                                </div>
+
+                                <!-- 上下间距 -->
+                                <div class="setting-item range-item" id="wrap-gap-y">
+                                    <div class="label-row">
+                                        <label>Row Gap (Y)</label>
+                                        <input type="number" id="num-gap-y" class="manual-input">
+                                    </div>
+                                    <input type="range" id="range-gap-y" min="0" max="30" step="2">
+                                </div>
+
+                                <!-- 卡片内边距 -->
+                                <div class="setting-item range-item" id="wrap-padding">
+                                    <div class="label-row">
+                                        <label>Card Padding</label>
+                                        <input type="number" id="num-padding" class="manual-input">
+                                    </div>
+                                    <input type="range" id="range-padding" min="0" max="20" step="2">
+                                </div>
+
+                                <!-- 字体大小 -->
+                                <div class="setting-item range-item" id="wrap-font">
+                                    <div class="label-row">
+                                        <label>Text Size</label>
+                                        <input type="number" id="num-font" class="manual-input">
+                                    </div>
+                                    <input type="range" id="range-font" min="10" max="16" step="1">
+                                </div>
+                                
+                                <div class="setting-item toggle-row">
+                                    <label>Card Background</label>
+                                    <label class="switch">
+                                        <input type="checkbox" id="check-card-bg" checked>
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                                
+                                <button id="btn-reset-appearance" class="btn text-only full-width">
+                                    Reset to Defaults
+                                </button>
+                            </div>
                         </div>
-                        <input type="range" id="range-width" min="200" max="800" step="10">
                     </div>
 
-                    <!-- 窗口高度 -->
-                    <div class="setting-item range-item" id="wrap-height">
-                        <div class="label-row">
-                            <label>Window Height</label>
-                            <input type="number" id="num-height" class="manual-input">
-                        </div>
-                        <input type="range" id="range-height" min="200" max="600" step="10">
-                    </div>
-
-                    <!-- 头像大小 -->
-                    <div class="setting-item range-item" id="wrap-avatar">
-                        <div class="label-row">
-                            <label>Avatar Size</label>
-                            <input type="number" id="num-avatar" class="manual-input">
-                        </div>
-                        <input type="range" id="range-avatar" min="20" max="150" step="2">
-                    </div>
-
-                    <!-- 左右间距 (支持负数) -->
-                    <div class="setting-item range-item" id="wrap-gap-x">
-                        <div class="label-row">
-                            <label>Column Gap (X)</label>
-                            <input type="number" id="num-gap-x" class="manual-input">
-                        </div>
-                        <input type="range" id="range-gap-x" min="-20" max="100" step="1">
-                    </div>
-
-                    <!-- 上下间距 (支持负数) -->
-                    <div class="setting-item range-item" id="wrap-gap-y">
-                        <div class="label-row">
-                            <label>Row Gap (Y)</label>
-                            <input type="number" id="num-gap-y" class="manual-input">
-                        </div>
-                        <input type="range" id="range-gap-y" min="-20" max="100" step="1">
-                    </div>
-
-                    <!-- 卡片内边距 -->
-                    <div class="setting-item range-item" id="wrap-padding">
-                        <div class="label-row">
-                            <label>Card Padding</label>
-                            <input type="number" id="num-padding" class="manual-input">
-                        </div>
-                        <input type="range" id="range-padding" min="0" max="50" step="1">
-                    </div>
-
-                    <!-- 字体大小 -->
-                    <div class="setting-item range-item" id="wrap-font">
-                        <div class="label-row">
-                            <label>Text Size</label>
-                            <input type="number" id="num-font" class="manual-input">
-                        </div>
-                        <input type="range" id="range-font" min="8" max="30" step="1">
-                    </div>
-                    
-                    <div class="setting-item toggle-row">
-                        <label>Show Card Background</label>
-                        <label class="switch">
-                            <input type="checkbox" id="check-card-bg" checked>
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                    
-                    <button id="btn-reset-appearance" class="btn outline full-width" style="margin-top:8px; font-size:11px;">
-                        Reset Appearance
-                    </button>
-
-                    <div class="divider"></div>
+                    <div class="spacer"></div>
 
                     <!-- 常规设置 -->
-                    <h4 class="settings-section-title">General</h4>
-
-                    <div class="setting-item">
-                        <label>Refresh Interval (sec)</label>
-                        <input type="number" id="input-interval" min="30" value="60">
+                    <div class="section-title">
+                        <div class="icon-box"><i class="fas fa-sliders-h"></i></div>
+                        <span>General</span>
                     </div>
 
-                    <div class="setting-item">
-                        <label>Badge Notifications</label>
-                        <select id="select-notification">
-                            <option value="2">All Live</option>
-                            <option value="3">Favorites & Likes</option>
-                            <option value="1">Favorites Only</option>
-                            <option value="0">Off</option>
-                        </select>
+                    <div class="setting-group">
+                        <div class="setting-item">
+                            <label>Refresh Interval (s)</label>
+                            <input type="number" id="input-interval" min="30" value="60" class="styled-input">
+                        </div>
+
+                        <div class="setting-item">
+                            <label>Badge Notifications</label>
+                            <div class="select-wrapper">
+                                <select id="select-notification">
+                                    <option value="2">All Live</option>
+                                    <option value="3">Favorites & Likes</option>
+                                    <option value="1">Favorites Only</option>
+                                    <option value="0">Off</option>
+                                </select>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+
+                        <div class="setting-item toggle-row">
+                            <label>Browser Notify</label>
+                            <label class="switch">
+                                <input type="checkbox" id="check-browser-notify">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
                     </div>
 
-                    <div class="setting-item toggle-row">
-                        <label>Browser Notifications</label>
-                        <label class="switch">
-                            <input type="checkbox" id="check-browser-notify">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-
-                    <div class="divider"></div>
+                    <div class="spacer"></div>
 
                     <div class="settings-actions">
                         <button id="btn-deleted" class="btn secondary">Hidden List</button>
                         <div class="file-ops">
-                            <button id="btn-export" class="btn outline" title="Export"><i class="fas fa-upload"></i></button>
-                            <button id="btn-import" class="btn outline" title="Import"><i class="fas fa-download"></i></button>
+                            <button id="btn-export" class="btn icon-only" title="Export"><i class="fas fa-upload"></i></button>
+                            <button id="btn-import" class="btn icon-only" title="Import"><i class="fas fa-download"></i></button>
                             <input type="file" id="file-import" accept=".json" hidden>
                         </div>
                     </div>
@@ -168,7 +189,7 @@
             <div class="settings-card glass-panel">
                 <div class="settings-header">
                     <h3>Hidden Streamers</h3>
-                    <button id="btn-close-deleted" class="icon-btn"><i class="fas fa-arrow-left"></i></button>
+                    <button id="btn-close-deleted" class="icon-btn close-btn"><i class="fas fa-arrow-left"></i></button>
                 </div>
                 <div id="deleted-list" class="deleted-list-container"></div>
             </div>
