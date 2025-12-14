@@ -175,7 +175,18 @@ function renderGrid() {
     gridContainer.innerHTML = visibleStreamers.map(s => createCardHTML(s)).join('');
     
     document.querySelectorAll('.streamer-card').forEach(card => {
-        card.addEventListener('click', () => openStream(card.dataset.link));
+        card.addEventListener('click', () => openStream(card.dataset.link, true));
+        card.addEventListener('mousedown', (e) => {
+            if (e.button === 1) {
+                e.preventDefault();
+            }
+        });
+        card.addEventListener('mouseup', (e) => {
+            if (e.button === 1) {
+                e.preventDefault();
+                openStream(card.dataset.link, false);
+            }
+        });
         card.addEventListener('contextmenu', (e) => showContextMenu(e, card.dataset.uid));
         card.addEventListener('mouseenter', (e) => handleHover(e, card.dataset.uid, card.dataset.roomid));
         card.addEventListener('mouseleave', handleLeave);
@@ -676,8 +687,8 @@ async function restoreStreamer(uid) {
     renderGrid();
 }
 
-function openStream(link) {
-    chrome.tabs.create({ url: link });
+function openStream(link, active = true) {
+    chrome.tabs.create({ url: link, active });
 }
 
 function updateIframeAudio() {
