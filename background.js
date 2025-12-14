@@ -34,6 +34,25 @@ async function fetchMedalWallData() {
     return await fetchBili(`${API_BASE}/xlive/web-ucenter/user/MedalWall?target_id=${targetId}`);
 }
 
+// 辅助函数：下载图片并转换为 Data URL
+async function fetchImageAsDataURL(url) {
+    try {
+        if (url.startsWith('http:')) url = url.replace('http:', 'https:');
+        const response = await fetch(url, { referrerPolicy: 'no-referrer' });
+        if (!response.ok) throw new Error(`Image fetch failed: ${response.status}`);
+        const blob = await response.blob();
+        return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (e) {
+        console.warn('Failed to fetch image as Data URL:', e);
+        return null;
+    }
+}
+
 // 更新徽章 (Badge)
 async function updateBadge(count, colorType = 'normal') {
     if (count > 0) {
@@ -70,7 +89,8 @@ async function updateStreamers() {
             'previousLiveUids', 
             'deletedStreamers',
             'notificationPreference', // '0':Off, '1':Fav, '2':All, '3':Like+Fav
-            'browserNotificationsEnabled',
+            'browserNotificationPreference', // New logic: '0', '1', '2', '3'
+            'browserNotificationsEnabled',   // Old logic: bool
             'newlyStreaming'
         ]);
 
@@ -78,8 +98,16 @@ async function updateStreamers() {
         const streamerStates = storage.streamerStates || {};
         const previousLiveUids = storage.previousLiveUids || [];
         let newlyStreaming = storage.newlyStreaming || [];
-        const notifPref = storage.notificationPreference || '2';
-        const browserNotif = storage.browserNotificationsEnabled !== false;
+        const badgePref = storage.notificationPreference || '2';
+        
+        // Browser Notify Preference Migration Logic
+        let browserPref;
+        if (storage.browserNotificationPreference) {
+            browserPref = storage.browserNotificationPreference;
+        } else {
+            const enabled = storage.browserNotificationsEnabled !== false;
+            browserPref = enabled ? (storage.notificationPreference || '2') : '0';
+        }
 
         // 过滤当前正在直播且未被删除的
         const currentLiveStreamers = streamingInfo.filter(s => s.live_status === 1 && !deletedStreamers.includes(s.uid));
@@ -105,9 +133,9 @@ async function updateStreamers() {
             if (!streamer) return false;
 
             const state = streamerStates[uid];
-            if (notifPref === '0') return false;
-            if (notifPref === '1') return state === 'favorite';
-            if (notifPref === '3') return state === 'favorite' || state === 'like';
+            if (badgePref === '0') return false;
+            if (badgePref === '1') return state === 'favorite';
+            if (badgePref === '3') return state === 'favorite' || state === 'like';
             return true; // '2' All
         });
         
@@ -118,7 +146,7 @@ async function updateStreamers() {
         await updateBadge(badgeCount, badgeColorType);
 
         // 浏览器通知逻辑
-        if (browserNotif && justStartedUids.length > 0) {
+        if (browserPref !== '0' && justStartedUids.length > 0) {
             for (const uid of justStartedUids) {
                 const streamer = currentLiveStreamers.find(s => s.uid === uid);
                 if (!streamer) continue;
@@ -126,9 +154,9 @@ async function updateStreamers() {
                 const state = streamerStates[uid];
                 // 检查通知权限
                 let shouldNotify = false;
-                if (notifPref === '2') shouldNotify = true;
-                if (notifPref === '1' && state === 'favorite') shouldNotify = true;
-                if (notifPref === '3' && (state === 'favorite' || state === 'like')) shouldNotify = true;
+                if (browserPref === '2') shouldNotify = true;
+                if (browserPref === '1' && state === 'favorite') shouldNotify = true;
+                if (browserPref === '3' && (state === 'favorite' || state === 'like')) shouldNotify = true;
 
                 if (shouldNotify) {
                     // 获取房间标题用于通知
@@ -136,13 +164,23 @@ async function updateStreamers() {
                         const roomData = await fetchRoomInfo(streamer.roomId);
                         const title = roomData.data.title;
                         
-                        chrome.notifications.create(`live-${uid}-${Date.now()}`, {
+                        // 预下载图片转为 DataURL
+                        let iconUrl = 'images/icon128.png'; // 默认
+                        const dataUrl = await fetchImageAsDataURL(streamer.streamer_icon);
+                        if (dataUrl) {
+                            iconUrl = dataUrl;
+                        }
+
+                        const notifId = `live-${uid}-${Date.now()}`;
+                        const notifOptions = {
                             type: 'basic',
-                            iconUrl: streamer.streamer_icon,
+                            iconUrl: iconUrl,
                             title: `${streamer.streamer_name} 开播了!`,
                             message: title,
                             priority: 2
-                        });
+                        };
+
+                        chrome.notifications.create(notifId, notifOptions);
                         
                         // 存储点击跳转链接
                         const { openTabsOnNotificationClick = {} } = await chrome.storage.local.get('openTabsOnNotificationClick');

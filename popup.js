@@ -72,7 +72,16 @@ async function loadData() {
         State.newlyStreaming = storage.newlyStreaming || [];
         State.refreshInterval = storage.refreshInterval || 60;
         State.notificationPref = storage.notificationPreference || '2';
-        State.browserNotify = storage.browserNotificationsEnabled !== false;
+        
+        // Data Migration for browserNotify
+        if (storage.browserNotificationPreference) {
+            State.browserNotify = storage.browserNotificationPreference;
+        } else {
+            // Migration logic
+            const enabled = storage.browserNotificationsEnabled !== false;
+            State.browserNotify = enabled ? (storage.notificationPreference || '2') : '0';
+        }
+        
         State.appearance = { ...DEFAULT_APPEARANCE, ...storage.appearance }; 
 
         applyTheme(State.appearance);
@@ -322,7 +331,7 @@ contextMenu.addEventListener('click', async (e) => {
 function updateSettingsUI() {
     document.getElementById('input-interval').value = State.refreshInterval;
     document.getElementById('select-notification').value = State.notificationPref;
-    document.getElementById('check-browser-notify').checked = State.browserNotify;
+    document.getElementById('select-browser-notify').value = State.browserNotify;
 
     const app = State.appearance;
     
@@ -456,8 +465,8 @@ function setupEventListeners() {
     document.getElementById('select-notification').onchange = (e) => {
         chrome.storage.local.set({ notificationPreference: e.target.value });
     };
-    document.getElementById('check-browser-notify').onchange = (e) => {
-        chrome.storage.local.set({ browserNotificationsEnabled: e.target.checked });
+    document.getElementById('select-browser-notify').onchange = (e) => {
+        chrome.storage.local.set({ browserNotificationPreference: e.target.value });
     };
     document.getElementById('btn-deleted').onclick = () => {
         settingsPanel.classList.add('hidden');
@@ -473,7 +482,7 @@ function setupEventListeners() {
     document.getElementById('btn-export').onclick = async () => {
         const keysToExport = [
             'appearance', 'streamerStates', 'deletedStreamers', 
-            'refreshInterval', 'notificationPreference', 'browserNotificationsEnabled'
+            'refreshInterval', 'notificationPreference', 'browserNotificationPreference'
         ];
         const data = await chrome.storage.local.get(keysToExport);
         const date = new Date().toISOString().slice(0, 10);

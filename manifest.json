@@ -11,7 +11,8 @@
         "notifications"
     ],
     "host_permissions": [
-        "https://*.bilibili.com/*"
+        "https://*.bilibili.com/*",
+        "https://*.hdslb.com/*"
     ],
     "action": {
         "default_popup": "popup.html",
