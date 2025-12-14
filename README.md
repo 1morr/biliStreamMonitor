@@ -1,40 +1,75 @@
-# BiliStreamMonitor
+# BiliStreamMonitor (B站直播关注助手)
 
-A Chrome extension for monitoring Bilibili streamers from your medal wall. Get notified when your favorite streamers go live and quickly access their streams.
+BiliStreamMonitor 是一个 Chrome 浏览器扩展，基于你的 Bilibili 粉丝勋章墙来监控主播的直播状态。它能让你在不打开 B 站的情况下，实时了解你关注的主播是否开播，并提供快捷访问和通知功能。
 
-## Features
+## ✨ 主要功能
 
-*   **Medal Wall Monitoring:** Automatically fetches and displays streamers from your Bilibili medal wall.
-*   **Live Status Updates:** Shows which streamers are currently live directly in the extension popup.
-*   **Desktop Notifications:** Receive notifications when a favorite streamer starts streaming, including the stream title.
-*   **Stream Information:** View stream titles and preview images via tooltips in the popup.
-*   **Quick Access:** Click on a streamer to open their Bilibili live room directly.
-*   **Favorites System:** Mark streamers as favorites to receive prioritized notifications.
-*   **Context Menu:** Right-click (or long-press) on a streamer in the popup for quick actions like marking as favorite, liking (placeholder), or opening the stream.
+*   **实时监控**：基于粉丝勋章墙，自动检测主播直播状态。
+*   **开播通知**：当关注的主播开播时，通过浏览器通知或图标角标提醒你。
+*   **悬浮预览**：鼠标悬停在主播头像上，即可预览直播间标题、封面图以及已开播时长。
+*   **个性化分组**：支持将主播标记为“特别关注 (Favorite)”或“喜欢 (Like)”，方便区分优先级。
+*   **高度自定义**：
+    *   可调整弹窗大小、头像大小、间距、字体大小等外观设置。
+    *   支持深色/浅色卡片背景切换。
+    *   自定义刷新间隔。
+    *   可配置通知策略（仅提醒特别关注、全部提醒等）。
+*   **隐藏功能**：支持隐藏不想在列表中看到的主播。
+*   **数据导入/导出**：支持导出和导入配置数据，方便备份或迁移。
 
-## Installation
+## 🖼️ 程序截图
 
-1.  **Download the Extension:**
-    *   Clone this repository or download the ZIP file and extract it to a folder on your computer.
-2.  **Load into Chrome:**
-    *   Open Google Chrome.
-    *   Navigate to `chrome://extensions/`.
-    *   Enable **Developer mode** using the toggle switch in the top-right corner.
-    *   Click the **Load unpacked** button.
-    *   Select the folder where you extracted/cloned the extension files (the folder containing `manifest.json`).
-3.  The BiliStreamMonitor extension icon should now appear in your Chrome toolbar.
+> *(请在此处放置程序主界面截图)*
 
-## How to Use
+> *(请在此处放置设置界面截图)*
 
-1.  **Make sure you are logged in:** It would automatically retrieve your cookies from bilibili.
-2.  **Open the Popup:** Click the BiliStreamMonitor extension icon in your Chrome toolbar.
-3.  **View Streamers:** The popup will display a list of streamers from your Bilibili medal wall. Streamers who are currently live will be highlighted.
-4.  **Open Stream:** Click on a streamer's name or icon in the list to open their Bilibili live room in a new tab.
-5.  **Tooltips:** Hover your mouse over the icon of a live streamer to see a tooltip displaying the current stream title and a preview image.
-6.  **Context Menu:**
-    *   Right-click on a streamer's entry in the popup to open a context menu.
-    *   From the context menu, you can:
-        *   Mark/unmark the streamer as a **Favorite** (heart icon).
-        *   **Like** the streamer (star icon).
-        *   **Remove/hide** the streamer from the list (delete icon).
-7.  **Notifications:** If you have marked a streamer as a favorite, you will receive a desktop notification when they go live. The notification will include their name and the title of their current stream.
+## 🚀 如何安装
+
+由于本扩展尚未发布到 Chrome 网上应用店，你需要通过“加载已解压的扩展程序”来安装：
+
+1.  下载本项目的源代码到本地。
+2.  打开 Chrome 浏览器，进入扩展程序管理页面 (`chrome://extensions/`)。
+3.  开启右上角的 **“开发者模式”**。
+4.  点击左上角的 **“加载已解压的扩展程序”**。
+5.  选择包含 `manifest.json` 文件的项目文件夹 (`biliStreamMonitor`)。
+
+## 📖 使用指南
+
+### 1. 初始化
+安装完成后，点击浏览器工具栏上的 BiliStreamMonitor 图标。扩展程序会自动检测你的 Bilibili 登录状态。
+*   **注意**：你需要先在 Chrome 浏览器中登录 [Bilibili](https://www.bilibili.com)，扩展才能获取你的粉丝勋章列表。
+
+### 2. 查看直播列表
+点击扩展图标，弹窗会显示当前正在直播的主播列表。
+*   **点击头像**：直接跳转到该主播的直播间。
+*   **鼠标悬停**：查看直播预览信息（标题、时长、封面）。
+
+### 3. 右键菜单操作
+在主播头像上点击 **鼠标右键**，可以进行以下操作：
+*   **设为特别关注 (Favorite)**：标记为最高优先级，角标通知颜色为红色。
+*   **设为喜欢 (Like)**：标记为次级优先级，角标通知颜色为橙色。
+*   **隐藏 (Hide)**：将该主播从列表中隐藏（可在设置中找回）。
+
+### 4. 设置与个性化
+点击弹窗右下角的 **悬浮设置按钮** 进入设置面板：
+*   **Appearance (外观)**：调整窗口宽高、头像大小、间距等。
+*   **General (常规)**：
+    *   **Refresh Interval**：设置自动刷新数据的间隔（秒）。
+    *   **Badge Notifications**：设置扩展图标上的数字角标提醒规则（如：仅特别关注、全部直播等）。
+    *   **Browser Notify**：设置桌面弹窗通知的规则。
+*   **Hidden List**：管理已隐藏的主播，可在此处恢复显示。
+*   **Export/Import**：备份或恢复你的个性化设置。
+
+## 🛠️ 权限说明
+
+本扩展仅申请必要的权限以实现功能：
+*   `cookies`：用于获取 Bilibili 登录状态 (DedeUserID)。
+*   `storage`：用于保存你的设置和主播状态。
+*   `alarms`：用于定时刷新直播状态。
+*   `notifications`：用于发送开播提醒。
+*   `host_permissions` (`*.bilibili.com`, `*.hdslb.com`)：用于请求 Bilibili API 获取直播数据和图片。
+
+## 📝 注意事项
+
+*   本程序依赖 Bilibili 网页端的登录状态，如果 Cookie 过期，请重新登录 Bilibili。
+*   程序监控的数据源是**粉丝勋章墙**，因此只有你拥有粉丝勋章的主播才会出现在列表中。
+
