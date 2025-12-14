@@ -91,8 +91,9 @@ body {
 .avatar-badge.like { color: var(--accent-orange); }
 
 .streamer-name { font-size: var(--base-font-size); font-weight: 600; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; color: var(--text-primary); }
-.medal-info { font-size: calc(var(--base-font-size) - 2px); color: var(--text-secondary); background: rgba(255,255,255,0.6); padding: 1px 6px; border-radius: 8px; max-width: 95%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.grid-view.minimal-mode .medal-info { background: rgba(255,255,255,0.4); }
+.streamer-card:not(.offline) .streamer-name { color: #0000FF; }
+.medal-info { font-size: calc(var(--base-font-size) - 2px); color: var(--text-secondary); padding: 1px 0; max-width: 95%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* .grid-view.minimal-mode .medal-info { background: rgba(255,255,255,0.4); } */
 
 /* FAB */
 .floating-btn {
