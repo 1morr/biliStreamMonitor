@@ -505,24 +505,32 @@ function renderDeletedList() {
         return;
     }
     const listHTML = State.deletedUids.map(uid => {
-        const info = State.streamers.find(s => s.uid === uid) || { streamer_name: 'Unknown', streamer_icon: 'images/icon128.png' };
+        const info = State.streamers.find(s => String(s.uid) === String(uid)) || { streamer_name: 'Unknown', streamer_icon: 'images/icon128.png' };
         return `
             <div class="deleted-item">
                 <img src="${info.streamer_icon}">
                 <span>${info.streamer_name}</span>
-                <button class="restore-btn" onclick="restoreStreamer(${uid})"><i class="fas fa-undo"></i></button>
+                <button class="restore-btn" data-uid="${uid}"><i class="fas fa-undo"></i></button>
             </div>
         `;
     }).join('');
     container.innerHTML = listHTML;
+
+    // Add event listeners
+    container.querySelectorAll('.restore-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const uid = parseInt(btn.dataset.uid);
+            restoreStreamer(uid);
+        });
+    });
 }
 
-window.restoreStreamer = async (uid) => {
+async function restoreStreamer(uid) {
     State.deletedUids = State.deletedUids.filter(id => id !== uid);
     await chrome.storage.local.set({ deletedStreamers: State.deletedUids });
     renderDeletedList();
     renderGrid();
-};
+}
 
 function openStream(link) {
     chrome.tabs.create({ url: link });
