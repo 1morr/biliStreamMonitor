@@ -24,6 +24,8 @@ const State = {
     notificationPref: '2',
     browserNotify: '1',
     previewMode: 'thumbnail',
+    previewSound: false,
+    previewVolume: 50,
     appearance: { ...DEFAULT_APPEARANCE }, 
     roomCache: new Map() 
 };
@@ -69,6 +71,7 @@ async function loadData() {
             'notificationPreference', 'browserNotificationsEnabled',
             'browserNotificationPreference',
             'previewMode',
+            'previewSound', 'previewVolume',
             'appearance'
         ]);
 
@@ -79,6 +82,8 @@ async function loadData() {
         State.refreshInterval = storage.refreshInterval || 60;
         State.notificationPref = storage.notificationPreference || '2';
         State.previewMode = storage.previewMode || 'thumbnail';
+        State.previewSound = storage.previewSound || false;
+        State.previewVolume = storage.previewVolume !== undefined ? storage.previewVolume : 50;
         
         // Data Migration for browserNotify
         if (storage.browserNotificationPreference !== undefined) {
@@ -263,6 +268,7 @@ async function handleHover(e, uid, roomId) {
                 previewIframe.onload = () => {
                     previewIframe.classList.remove('hidden');
                     previewLoader.classList.add('hidden');
+                    updateIframeAudio();
                 };
             } else {
                 previewImg.classList.remove('hidden');
@@ -377,6 +383,9 @@ function updateSettingsUI() {
     document.getElementById('select-notification').value = State.notificationPref;
     document.getElementById('select-browser-notify').value = State.browserNotify;
     document.getElementById('select-preview-mode').value = State.previewMode;
+    document.getElementById('check-preview-sound').checked = State.previewSound;
+    document.getElementById('range-preview-volume').value = State.previewVolume;
+    document.getElementById('val-preview-volume').textContent = `${State.previewVolume}%`;
 
     const app = State.appearance;
     
@@ -404,6 +413,37 @@ function updateSettingsUI() {
     const themeSelect = document.getElementById('select-theme');
     if (themeSelect) {
         themeSelect.value = app.theme || 'light';
+    }
+    
+    updateAudioControlsState();
+}
+
+function updateAudioControlsState() {
+    const isLiveMode = State.previewMode === 'live';
+    const isSoundEnabled = State.previewSound;
+
+    const soundWrap = document.getElementById('wrap-preview-sound');
+    const volumeWrap = document.getElementById('wrap-preview-volume');
+    const soundCheck = document.getElementById('check-preview-sound');
+    const volumeRange = document.getElementById('range-preview-volume');
+
+    if (isLiveMode) {
+        soundWrap.classList.remove('disabled');
+        soundCheck.disabled = false;
+        
+        if (isSoundEnabled) {
+            volumeWrap.classList.remove('disabled');
+            volumeRange.disabled = false;
+        } else {
+            volumeWrap.classList.add('disabled');
+            volumeRange.disabled = true;
+        }
+    } else {
+        soundWrap.classList.add('disabled');
+        soundCheck.disabled = true;
+        
+        volumeWrap.classList.add('disabled');
+        volumeRange.disabled = true;
     }
 }
 
@@ -534,7 +574,25 @@ function setupEventListeners() {
     document.getElementById('select-preview-mode').onchange = (e) => {
         State.previewMode = e.target.value;
         chrome.storage.local.set({ previewMode: e.target.value });
+        updateAudioControlsState();
     };
+    document.getElementById('check-preview-sound').onchange = (e) => {
+        State.previewSound = e.target.checked;
+        chrome.storage.local.set({ previewSound: State.previewSound });
+        updateIframeAudio();
+        updateAudioControlsState();
+    };
+    const rangeVolume = document.getElementById('range-preview-volume');
+    rangeVolume.oninput = (e) => {
+        const val = parseInt(e.target.value);
+        State.previewVolume = val;
+        document.getElementById('val-preview-volume').textContent = `${val}%`;
+        updateIframeAudio();
+    };
+    rangeVolume.onchange = (e) => {
+        chrome.storage.local.set({ previewVolume: parseInt(e.target.value) });
+    };
+
     document.getElementById('btn-deleted').onclick = () => {
         settingsPanel.classList.add('hidden');
         deletedPanel.classList.remove('hidden');
@@ -549,7 +607,8 @@ function setupEventListeners() {
     document.getElementById('btn-export').onclick = async () => {
         const keysToExport = [
             'appearance', 'streamerStates', 'deletedStreamers', 
-            'refreshInterval', 'notificationPreference', 'browserNotificationPreference'
+            'refreshInterval', 'notificationPreference', 'browserNotificationPreference',
+            'previewMode', 'previewSound', 'previewVolume'
         ];
         const data = await chrome.storage.local.get(keysToExport);
         const date = new Date().toISOString().slice(0, 10);
@@ -619,6 +678,16 @@ async function restoreStreamer(uid) {
 
 function openStream(link) {
     chrome.tabs.create({ url: link });
+}
+
+function updateIframeAudio() {
+    if (previewIframe && !previewIframe.classList.contains('hidden') && previewIframe.src) {
+        previewIframe.contentWindow.postMessage({
+            type: 'BSM_UPDATE_VOLUME',
+            muted: !State.previewSound, 
+            volume: State.previewVolume / 100
+        }, '*');
+    }
 }
 
 // Background Listener
