@@ -2,9 +2,9 @@
     /* 外观变量 */
     --app-width: 500px;
     --app-height: 550px;
-    --avatar-size: 80px;
+    --avatar-size: 84px;
     --card-padding-y: 10px;
-    --card-padding-x: 10px;
+    --card-padding-x: 0px;
     --base-font-size: 14px;
     --grid-gap-x: 12px;
     --grid-gap-y: 12px;
