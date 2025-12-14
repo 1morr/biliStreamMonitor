@@ -271,6 +271,12 @@ body {
 .setting-group { background: var(--settings-body-bg); border-radius: var(--radius-md); border: 1px solid var(--border-color); padding: 16px; margin-bottom: 10px; }
 .setting-item { margin-bottom: 16px; }
 .setting-item:last-child { margin-bottom: 0; }
+.setting-item.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    filter: grayscale(1);
+}
+
 .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .setting-item label { font-size: 13px; color: var(--text-primary); font-weight: 500; }
 
