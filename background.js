@@ -106,7 +106,7 @@ async function updateStreamers() {
             browserPref = storage.browserNotificationPreference;
         } else {
             const enabled = storage.browserNotificationsEnabled !== false;
-            browserPref = enabled ? (storage.notificationPreference || '2') : '0';
+            browserPref = enabled ? (storage.notificationPreference || '1') : '0';
         }
 
         // 过滤当前正在直播且未被删除的

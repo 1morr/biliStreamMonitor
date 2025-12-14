@@ -22,7 +22,7 @@ const State = {
     newlyStreaming: [],
     refreshInterval: 60,
     notificationPref: '2',
-    browserNotify: true,
+    browserNotify: '1',
     appearance: { ...DEFAULT_APPEARANCE }, 
     roomCache: new Map() 
 };
@@ -82,7 +82,7 @@ async function loadData() {
         } else {
             // Migration logic
             const enabled = storage.browserNotificationsEnabled !== false;
-            State.browserNotify = enabled ? (storage.notificationPreference || '2') : '0';
+            State.browserNotify = enabled ? (storage.notificationPreference || '1') : '0';
         }
         
         let loadedAppearance = storage.appearance || {};
