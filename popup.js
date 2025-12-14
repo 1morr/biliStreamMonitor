@@ -10,7 +10,8 @@ const DEFAULT_APPEARANCE = {
     fontSize: 14,
     gapX: 12,
     gapY: 12,
-    showCardBg: false
+    showCardBg: false,
+    theme: 'light'
 };
 
 // 2. State
@@ -120,6 +121,9 @@ function applyTheme(appearance) {
     root.style.setProperty('--base-font-size', `${appearance.fontSize}px`);
     root.style.setProperty('--grid-gap-x', `${appearance.gapX}px`);
     root.style.setProperty('--grid-gap-y', `${appearance.gapY}px`);
+
+    // Apply theme (dark/light)
+    root.setAttribute('data-theme', appearance.theme || 'light');
 
     if (appearance.showCardBg) {
         gridContainer.classList.remove('minimal-mode');
@@ -372,6 +376,12 @@ function updateSettingsUI() {
     syncUI('font', app.fontSize);
     
     document.getElementById('check-card-bg').checked = app.showCardBg;
+    
+    // Update Theme Select
+    const themeSelect = document.getElementById('select-theme');
+    if (themeSelect) {
+        themeSelect.value = app.theme || 'light';
+    }
 }
 
 function setupEventListeners() {
@@ -468,6 +478,16 @@ function setupEventListeners() {
         applyTheme(State.appearance);
         saveAppearance();
     });
+
+    // Theme Select Listener
+    const themeSelect = document.getElementById('select-theme');
+    if (themeSelect) {
+        themeSelect.addEventListener('change', (e) => {
+            State.appearance.theme = e.target.value;
+            applyTheme(State.appearance);
+            saveAppearance();
+        });
+    }
 
     document.getElementById('btn-reset-appearance').onclick = () => {
         State.appearance = { ...DEFAULT_APPEARANCE };
