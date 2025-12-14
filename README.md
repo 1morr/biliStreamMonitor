@@ -1,6 +1,6 @@
 # BiliStreamMonitor (B站直播关注助手)
 
-BiliStreamMonitor 是一个 Chrome 浏览器扩展，基于你的 Bilibili 粉丝勋章墙来监控主播的直播状态。它能让你在不打开 B 站的情况下，实时了解你关注的主播是否开播，并提供快捷访问和通知功能。
+BiliStreamMonitor 是一个 Chrome 浏览器扩展，基于你的 Bilibili 粉丝勋章墙来监控主播的直播状态。它能让你在不打开 B 站的情况下，实时关注你最爱的主播是否开播，并提供快捷访问和通知功能。
 
 ## ✨ 主要功能
 
