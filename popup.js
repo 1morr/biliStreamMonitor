@@ -225,6 +225,7 @@ function createCardHTML(s) {
 
 // --- Tooltip Logic ---
 let hoverTimeout;
+let iframeLoadTimeout;
 let currentHoverUid = null;
 
 async function handleHover(e, uid, roomId) {
@@ -235,6 +236,7 @@ async function handleHover(e, uid, roomId) {
     updateTooltipPosition(e.target);
 
     clearTimeout(hoverTimeout);
+    clearTimeout(iframeLoadTimeout);
     
     hoverTimeout = setTimeout(async () => {
         if (currentHoverUid !== uid) return;
@@ -246,6 +248,13 @@ async function handleHover(e, uid, roomId) {
         previewImg.classList.add('hidden');
         previewImg.classList.remove('loaded');
         previewImg.src = '';
+        
+        // Reset aspect ratio to default 16:9 initially
+        const previewWrapper = document.querySelector('.preview-image-wrapper');
+        if (previewWrapper) {
+            previewWrapper.style.aspectRatio = '16 / 9';
+            previewWrapper.style.height = 'auto';
+        }
         
         previewIframe.classList.add('hidden');
         previewIframe.src = '';
@@ -274,24 +283,79 @@ async function handleHover(e, uid, roomId) {
 
         if (roomData) {
             if (State.previewMode === 'live') {
-                const playerUrl = `https://www.bilibili.com/blackboard/live/live-activity-player.html?cid=${roomId}&muted=1&autoplay=1`;
-                previewIframe.src = playerUrl;
-                previewIframe.onload = () => {
-                    previewIframe.classList.remove('hidden');
-                    previewLoader.classList.add('hidden');
-                    updateIframeAudio();
-                };
-            } else {
+                let liveReady = false;
+
+                // 1. Load Thumbnail first (as placeholder)
                 previewImg.classList.remove('hidden');
                 const thumb = roomData.keyframe || roomData.user_cover;
                 previewImg.src = thumb;
-                previewImg.onload = () => {
+                
+                const showThumbnail = () => {
+                    // Adjust aspect ratio based on image
+                    if (previewImg.naturalWidth && previewImg.naturalHeight) {
+                        const ratio = previewImg.naturalWidth / previewImg.naturalHeight;
+                        const previewWrapper = document.querySelector('.preview-image-wrapper');
+                        // Allow vertical (e.g. < 1) but clamp extreme values if needed
+                        // If ratio is close to 16:9 (1.77) keep it, if it's vertical (e.g. 0.56) use it
+                        previewWrapper.style.aspectRatio = `${ratio}`;
+                    }
+
+                    // Only show thumbnail if Live hasn't taken over yet
+                    if (!liveReady) {
+                        previewImg.classList.add('loaded');
+                        previewLoader.classList.add('hidden');
+                    }
+                };
+
+                previewImg.onload = showThumbnail;
+                if (previewImg.complete) showThumbnail();
+
+                // 2. Load Live Player
+                const playerUrl = `https://www.bilibili.com/blackboard/live/live-activity-player.html?cid=${roomId}&muted=1&autoplay=1`;
+                previewIframe.src = playerUrl;
+                
+                previewIframe.onload = () => {
+                    previewIframe.classList.remove('hidden');
+                    updateIframeAudio();
+                    
+                    // Delay hiding thumbnail to ensure iframe is fully rendered
+                    iframeLoadTimeout = setTimeout(() => {
+                        liveReady = true;
+                        
+                        if (previewImg.classList.contains('loaded')) {
+                            // If thumbnail is visible, fade it out
+                            previewImg.classList.remove('loaded'); 
+                            setTimeout(() => {
+                                previewImg.classList.add('hidden');
+                            }, 500); 
+                        } else {
+                            // If thumbnail wasn't ready, hide loader and show live directly
+                            previewLoader.classList.add('hidden');
+                            previewImg.classList.add('hidden');
+                        }
+                    }, 800); // Wait for iframe to render content and controls to stabilize
+                };
+            } else {
+                // --- THUMBNAIL MODE ---
+                previewImg.classList.remove('hidden');
+                previewImg.classList.remove('loaded'); // Reset opacity
+                const thumb = roomData.keyframe || roomData.user_cover;
+                previewImg.src = thumb;
+                
+                const showImg = () => {
+                    // Adjust aspect ratio based on image
+                    if (previewImg.naturalWidth && previewImg.naturalHeight) {
+                        const ratio = previewImg.naturalWidth / previewImg.naturalHeight;
+                        const previewWrapper = document.querySelector('.preview-image-wrapper');
+                        previewWrapper.style.aspectRatio = `${ratio}`;
+                    }
                     previewImg.classList.add('loaded');
                     previewLoader.classList.add('hidden');
                 };
+
+                previewImg.onload = showImg;
                 if (previewImg.complete) {
-                    previewImg.classList.add('loaded');
-                    previewLoader.classList.add('hidden');
+                    showImg();
                 }
             }
 
@@ -309,6 +373,7 @@ async function handleHover(e, uid, roomId) {
 function handleLeave() {
     currentHoverUid = null;
     clearTimeout(hoverTimeout);
+    clearTimeout(iframeLoadTimeout);
     previewTooltip.classList.remove('visible');
     setTimeout(() => {
         if (!currentHoverUid) {
