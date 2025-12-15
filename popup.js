@@ -232,6 +232,11 @@ async function handleHover(e, uid, roomId) {
     const streamer = State.streamers.find(s => String(s.uid) === String(uid));
     if (!streamer || Number(streamer.live_status) !== 1) return;
 
+    if (currentHoverUid === uid && previewTooltip.classList.contains('visible')) {
+        updateTooltipPosition(e.target);
+        return;
+    }
+
     currentHoverUid = uid;
     updateTooltipPosition(e.target);
 
