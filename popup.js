@@ -321,24 +321,23 @@ async function handleHover(e, uid, roomId) {
                 
                 previewIframe.onload = () => {
                     previewIframe.classList.remove('hidden');
-                    updateIframeAudio();
                     
-                    // Delay hiding thumbnail to ensure iframe is fully rendered
+                    // Delay hiding thumbnail and enabling audio to keep sound and picture in sync
                     iframeLoadTimeout = setTimeout(() => {
                         liveReady = true;
                         
                         if (previewImg.classList.contains('loaded')) {
-                            // If thumbnail is visible, fade it out
                             previewImg.classList.remove('loaded'); 
                             setTimeout(() => {
                                 previewImg.classList.add('hidden');
                             }, 500); 
                         } else {
-                            // If thumbnail wasn't ready, hide loader and show live directly
                             previewLoader.classList.add('hidden');
                             previewImg.classList.add('hidden');
                         }
-                    }, 800); // Wait for iframe to render content and controls to stabilize
+
+                        updateIframeAudio();
+                    }, 800);
                 };
             } else {
                 // --- THUMBNAIL MODE ---
