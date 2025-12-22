@@ -390,17 +390,42 @@ function handleLeave() {
 
 function updateTooltipPosition(targetEl) {
     const rect = targetEl.getBoundingClientRect();
-    const tooltipHeight = 210;
     const tooltipWidth = 260;
     const gap = 10;
-    let top = rect.bottom + gap;
-    let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+    const infoHeight = 60; // Approximate height of preview-info section
+    const minImageHeight = 100;
+    const padding = 20; // Safety padding from window edges
 
+    // Calculate available space below and above the target
+    const spaceBelow = window.innerHeight - rect.bottom - gap - padding;
+    const spaceAbove = rect.top - gap - padding;
+
+    let top;
+    let availableHeight;
+
+    // Prefer showing below, unless there's significantly more space above
+    if (spaceBelow >= minImageHeight + infoHeight || spaceBelow >= spaceAbove) {
+        top = rect.bottom + gap;
+        availableHeight = spaceBelow;
+    } else {
+        availableHeight = spaceAbove;
+        // We'll position from bottom after calculating actual height
+        top = Math.max(padding, rect.top - gap - Math.min(availableHeight, 500));
+    }
+
+    // Calculate max height for the image wrapper
+    const maxImageHeight = Math.max(minImageHeight, availableHeight - infoHeight);
+    const previewWrapper = document.querySelector('.preview-image-wrapper');
+    if (previewWrapper) {
+        previewWrapper.style.maxHeight = `${maxImageHeight}px`;
+    }
+
+    // Horizontal positioning
+    let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
     if (left < 10) left = 10;
     const appWidth = State.appearance.width;
     if (left + tooltipWidth > appWidth - 10) left = appWidth - tooltipWidth - 10;
-    
-    if (top + tooltipHeight > window.innerHeight) top = rect.top - tooltipHeight - gap;
+
     previewTooltip.style.top = `${top}px`;
     previewTooltip.style.left = `${left}px`;
 }
