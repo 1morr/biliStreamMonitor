@@ -393,31 +393,37 @@ function updateTooltipPosition(targetEl) {
     const tooltipWidth = 260;
     const gap = 10;
     const infoHeight = 60; // Approximate height of preview-info section
-    const minImageHeight = 100;
-    const padding = 20; // Safety padding from window edges
+    const defaultImageHeight = Math.round(tooltipWidth * 9 / 16); // 16:9 aspect ratio = 146px
+    const minImageHeight = 80; // Minimum usable image height
+    const padding = 0; // Safety padding from window edges
 
     // Calculate available space below and above the target
     const spaceBelow = window.innerHeight - rect.bottom - gap - padding;
     const spaceAbove = rect.top - gap - padding;
 
-    let top;
-    let availableHeight;
+    // Default tooltip height based on 16:9 aspect ratio
+    const defaultTooltipHeight = defaultImageHeight + infoHeight;
 
-    // Prefer showing below, unless there's significantly more space above
-    if (spaceBelow >= minImageHeight + infoHeight || spaceBelow >= spaceAbove) {
-        top = rect.bottom + gap;
-        availableHeight = spaceBelow;
+    // Prefer showing below, unless there's not enough space and more space above
+    const showAbove = spaceBelow < defaultTooltipHeight && spaceAbove > spaceBelow;
+    const availableHeight = showAbove ? spaceAbove : spaceBelow;
+
+    // Calculate actual image height: use default if space allows, otherwise fit to available space
+    const imageHeight = Math.max(minImageHeight, Math.min(defaultImageHeight, availableHeight - infoHeight));
+    const actualTooltipHeight = imageHeight + infoHeight;
+
+    let top;
+    if (showAbove) {
+        // Position tooltip so its bottom edge is just above the target
+        top = rect.top - gap - actualTooltipHeight;
+        top = Math.max(padding, top);
     } else {
-        availableHeight = spaceAbove;
-        // We'll position from bottom after calculating actual height
-        top = Math.max(padding, rect.top - gap - Math.min(availableHeight, 500));
+        top = rect.bottom + gap;
     }
 
-    // Calculate max height for the image wrapper
-    const maxImageHeight = Math.max(minImageHeight, availableHeight - infoHeight);
     const previewWrapper = document.querySelector('.preview-image-wrapper');
     if (previewWrapper) {
-        previewWrapper.style.maxHeight = `${maxImageHeight}px`;
+        previewWrapper.style.maxHeight = `${imageHeight}px`;
     }
 
     // Horizontal positioning
