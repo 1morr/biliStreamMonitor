@@ -86,13 +86,35 @@ async function updateStreamers() {
         // 获取旧状态和配置
         const storage = await chrome.storage.local.get([
             'streamerStates', // {uid: 'favorite' | 'like'}
-            'previousLiveUids', 
+            'previousLiveUids',
             'deletedStreamers',
             'notificationPreference', // '0':Off, '1':Fav, '2':All, '3':Like+Fav
             'browserNotificationPreference', // New logic: '0', '1', '2', '3'
             'browserNotificationsEnabled',   // Old logic: bool
-            'newlyStreaming'
+            'newlyStreaming',
+            'customStreamers'
         ]);
+
+        // Update live status for custom streamers
+        let customStreamers = storage.customStreamers || [];
+        const medalWallUids = new Set(streamingInfo.map(s => String(s.uid)));
+        if (customStreamers.length > 0) {
+            for (const cs of customStreamers) {
+                // Skip if already covered by medal wall
+                if (medalWallUids.has(String(cs.uid))) continue;
+                try {
+                    const roomData = await fetchRoomInfo(cs.roomId);
+                    cs.live_status = roomData.data.live_status;
+                } catch (e) {
+                    // Keep previous status on error
+                }
+            }
+            await chrome.storage.local.set({ customStreamers });
+        }
+
+        // Merge for notification/badge calculations (medal wall priority)
+        const uniqueCustom = customStreamers.filter(c => !medalWallUids.has(String(c.uid)));
+        const allStreamers = [...streamingInfo, ...uniqueCustom];
 
         const deletedStreamers = storage.deletedStreamers || [];
         const streamerStates = storage.streamerStates || {};
@@ -109,8 +131,8 @@ async function updateStreamers() {
             browserPref = enabled ? (storage.notificationPreference || '1') : '0';
         }
 
-        // 过滤当前正在直播且未被删除的
-        const currentLiveStreamers = streamingInfo.filter(s => s.live_status === 1 && !deletedStreamers.includes(s.uid));
+        // 过滤当前正在直播且未被删除的 (包含自定义直播间)
+        const currentLiveStreamers = allStreamers.filter(s => s.live_status === 1 && !deletedStreamers.includes(s.uid));
         const currentLiveUids = currentLiveStreamers.map(s => s.uid);
 
         // 检测新开播
@@ -231,8 +253,9 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
 chrome.notifications.onClicked.addListener(async (notifId) => {
     const uid = notifId.split('-')[1]; // live-UID-timestamp
     if (uid) {
-        const { streamingInfo } = await chrome.storage.local.get('streamingInfo');
-        const streamer = streamingInfo?.find(s => String(s.uid) === uid);
+        const { streamingInfo, customStreamers } = await chrome.storage.local.get(['streamingInfo', 'customStreamers']);
+        const allStreamers = [...(streamingInfo || []), ...(customStreamers || [])];
+        const streamer = allStreamers.find(s => String(s.uid) === uid);
         if (streamer) {
             chrome.tabs.create({ url: streamer.link });
         }

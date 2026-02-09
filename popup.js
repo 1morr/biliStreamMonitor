@@ -17,8 +17,9 @@ const DEFAULT_APPEARANCE = {
 // 2. State
 const State = {
     streamers: [],
+    customStreamers: [], // manually added rooms: [{uid, streamer_name, streamer_icon, roomId, link}]
     deletedUids: [],
-    states: {}, 
+    states: {},
     newlyStreaming: [],
     refreshInterval: 60,
     notificationPref: '2',
@@ -26,8 +27,8 @@ const State = {
     previewMode: 'thumbnail',
     previewSound: false,
     previewVolume: 50,
-    appearance: { ...DEFAULT_APPEARANCE }, 
-    roomCache: new Map() 
+    appearance: { ...DEFAULT_APPEARANCE },
+    roomCache: new Map()
 };
 
 // --- DOM Elements ---
@@ -66,16 +67,18 @@ async function loadData() {
 
     try {
         const storage = await chrome.storage.local.get([
-            'streamingInfo', 'deletedStreamers', 'streamerStates', 
-            'newlyStreaming', 'refreshInterval', 
+            'streamingInfo', 'deletedStreamers', 'streamerStates',
+            'newlyStreaming', 'refreshInterval',
             'notificationPreference', 'browserNotificationsEnabled',
             'browserNotificationPreference',
             'previewMode',
             'previewSound', 'previewVolume',
-            'appearance'
+            'appearance',
+            'customStreamers'
         ]);
 
         State.streamers = storage.streamingInfo || [];
+        State.customStreamers = storage.customStreamers || [];
         State.deletedUids = storage.deletedStreamers || [];
         State.states = storage.streamerStates || {};
         State.newlyStreaming = storage.newlyStreaming || [];
@@ -145,9 +148,21 @@ function saveAppearance() {
     chrome.storage.local.set({ appearance: State.appearance });
 }
 
+// --- Helper: Merge medal wall + custom streamers ---
+function getMergedStreamers() {
+    const medalWallUids = new Set(State.streamers.map(s => String(s.uid)));
+    const uniqueCustom = State.customStreamers.filter(c => !medalWallUids.has(String(c.uid)));
+    return [...State.streamers, ...uniqueCustom];
+}
+
 // --- Rendering ---
 function renderGrid() {
-    const visibleStreamers = State.streamers.filter(s => !State.deletedUids.includes(s.uid));
+    // Merge medal wall streamers with custom streamers (medal wall takes priority for conflicts)
+    const medalWallUids = new Set(State.streamers.map(s => String(s.uid)));
+    const uniqueCustom = State.customStreamers.filter(c => !medalWallUids.has(String(c.uid)));
+    const allStreamers = [...State.streamers, ...uniqueCustom];
+
+    const visibleStreamers = allStreamers.filter(s => !State.deletedUids.includes(s.uid));
 
     if (visibleStreamers.length === 0) {
         gridContainer.innerHTML = `
@@ -218,7 +233,7 @@ function createCardHTML(s) {
             </div>
             
             <div class="streamer-name">${s.streamer_name}</div>
-            <div class="medal-info">${s.medal_name} · Lv.${s.medal_level}</div>
+            <div class="medal-info">${s.medal_name ? `${s.medal_name} · Lv.${s.medal_level}` : ''}</div>
         </div>
     `;
 }
@@ -229,7 +244,8 @@ let iframeLoadTimeout;
 let currentHoverUid = null;
 
 async function handleHover(e, uid, roomId) {
-    const streamer = State.streamers.find(s => String(s.uid) === String(uid));
+    const allStreamers = getMergedStreamers();
+    const streamer = allStreamers.find(s => String(s.uid) === String(uid));
     if (!streamer || Number(streamer.live_status) !== 1) return;
 
     if (currentHoverUid === uid && previewTooltip.classList.contains('visible')) {
@@ -568,6 +584,12 @@ function setupEventListeners() {
         wrapperAppearance.classList.toggle('open');
     };
 
+    // Accordion Toggle - Custom Rooms
+    const wrapperCustomRooms = document.getElementById('accordion-custom-rooms');
+    document.getElementById('btn-toggle-custom-rooms').onclick = () => {
+        wrapperCustomRooms.classList.toggle('open');
+    };
+
     // 2. Settings Panel Open/Close
     document.getElementById('fab-settings').onclick = () => settingsPanel.classList.remove('hidden');
     document.getElementById('btn-close-settings').onclick = () => settingsPanel.classList.add('hidden');
@@ -717,9 +739,9 @@ function setupEventListeners() {
     // --- Export / Import ---
     document.getElementById('btn-export').onclick = async () => {
         const keysToExport = [
-            'appearance', 'streamerStates', 'deletedStreamers', 
+            'appearance', 'streamerStates', 'deletedStreamers',
             'refreshInterval', 'notificationPreference', 'browserNotificationPreference',
-            'previewMode', 'previewSound', 'previewVolume'
+            'previewMode', 'previewSound', 'previewVolume', 'customStreamers'
         ];
         const data = await chrome.storage.local.get(keysToExport);
         const date = new Date().toISOString().slice(0, 10);
@@ -751,6 +773,142 @@ function setupEventListeners() {
         reader.readAsText(file);
         e.target.value = '';
     };
+
+    // --- Custom Rooms ---
+    document.getElementById('btn-add-custom-room').onclick = () => addCustomRoom();
+    document.getElementById('input-custom-room').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') addCustomRoom();
+    });
+
+    renderCustomRoomList();
+}
+
+// --- Custom Room Functions ---
+function parseRoomId(input) {
+    input = input.trim();
+    // Try to extract room ID from URL
+    const urlMatch = input.match(/live\.bilibili\.com\/(\d+)/);
+    if (urlMatch) return urlMatch[1];
+    // Pure number
+    if (/^\d+$/.test(input)) return input;
+    return null;
+}
+
+function showCustomRoomStatus(msg, type) {
+    const el = document.getElementById('custom-room-status');
+    el.textContent = msg;
+    el.className = `custom-room-status ${type}`;
+    if (type !== 'loading') {
+        setTimeout(() => el.classList.add('hidden'), 3000);
+    }
+}
+
+async function addCustomRoom() {
+    const input = document.getElementById('input-custom-room');
+    const roomId = parseRoomId(input.value);
+    if (!roomId) {
+        showCustomRoomStatus('Invalid room URL or ID', 'error');
+        return;
+    }
+
+    // Check if already exists in custom list
+    if (State.customStreamers.some(s => String(s.roomId) === roomId)) {
+        showCustomRoomStatus('Room already in custom list', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('btn-add-custom-room');
+    btn.disabled = true;
+    showCustomRoomStatus('Fetching room info...', 'loading');
+
+    try {
+        // Fetch room info to get uid and title
+        const roomRes = await fetch(`https://api.live.bilibili.com/room/v1/Room/get_info?room_id=${roomId}`);
+        const roomJson = await roomRes.json();
+        if (roomJson.code !== 0) throw new Error(roomJson.message || 'Room not found');
+
+        const roomData = roomJson.data;
+        const uid = roomData.uid;
+
+        // Check if already in medal wall
+        if (State.streamers.some(s => String(s.uid) === String(uid))) {
+            showCustomRoomStatus('Already in medal wall list', 'error');
+            btn.disabled = false;
+            input.value = '';
+            return;
+        }
+
+        // Check if already in custom list by uid
+        if (State.customStreamers.some(s => String(s.uid) === String(uid))) {
+            showCustomRoomStatus('Room already in custom list', 'error');
+            btn.disabled = false;
+            input.value = '';
+            return;
+        }
+
+        // Fetch user info for name and icon
+        const userRes = await fetch(`https://api.live.bilibili.com/live_user/v1/Master/info?uid=${uid}`);
+        const userJson = await userRes.json();
+        let streamerName = `Room ${roomId}`;
+        let streamerIcon = 'images/icon128.png';
+        if (userJson.code === 0 && userJson.data?.info) {
+            streamerName = userJson.data.info.uname || streamerName;
+            streamerIcon = userJson.data.info.face || streamerIcon;
+        }
+
+        const newStreamer = {
+            uid: uid,
+            streamer_name: streamerName,
+            streamer_icon: streamerIcon,
+            medal_name: '',
+            medal_level: 0,
+            live_status: roomData.live_status,
+            link: `https://live.bilibili.com/${roomId}`,
+            roomId: String(roomId),
+            _custom: true
+        };
+
+        State.customStreamers.push(newStreamer);
+        await chrome.storage.local.set({ customStreamers: State.customStreamers });
+
+        input.value = '';
+        showCustomRoomStatus(`Added: ${streamerName}`, 'success');
+        renderCustomRoomList();
+        renderGrid();
+    } catch (err) {
+        showCustomRoomStatus(`Error: ${err.message}`, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function removeCustomRoom(uid) {
+    State.customStreamers = State.customStreamers.filter(s => String(s.uid) !== String(uid));
+    await chrome.storage.local.set({ customStreamers: State.customStreamers });
+    renderCustomRoomList();
+    renderGrid();
+}
+
+function renderCustomRoomList() {
+    const container = document.getElementById('custom-room-list');
+    if (State.customStreamers.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    container.innerHTML = State.customStreamers.map(s => `
+        <div class="custom-room-item">
+            <img src="${s.streamer_icon}" alt="${s.streamer_name}">
+            <div class="custom-room-info">
+                <div class="custom-room-name">${s.streamer_name}</div>
+                <div class="custom-room-id">Room ${s.roomId}</div>
+            </div>
+            <button class="btn-remove-custom" data-uid="${s.uid}" title="Remove"><i class="fas fa-times"></i></button>
+        </div>
+    `).join('');
+
+    container.querySelectorAll('.btn-remove-custom').forEach(btn => {
+        btn.addEventListener('click', () => removeCustomRoom(btn.dataset.uid));
+    });
 }
 
 function renderDeletedList() {
@@ -759,8 +917,9 @@ function renderDeletedList() {
         container.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">List is empty</div>';
         return;
     }
+    const allStreamers = getMergedStreamers();
     const listHTML = State.deletedUids.map(uid => {
-        const info = State.streamers.find(s => String(s.uid) === String(uid)) || { streamer_name: 'Unknown', streamer_icon: 'images/icon128.png' };
+        const info = allStreamers.find(s => String(s.uid) === String(uid)) || { streamer_name: 'Unknown', streamer_icon: 'images/icon128.png' };
         return `
             <div class="deleted-item">
                 <img src="${info.streamer_icon}">

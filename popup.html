@@ -222,6 +222,33 @@
 
                     <div class="spacer"></div>
 
+                    <!-- 自定义直播间 (手风琴) -->
+                    <div class="accordion-wrapper" id="accordion-custom-rooms">
+                        <button id="btn-toggle-custom-rooms" class="accordion-header">
+                            <div class="header-left">
+                                <div class="icon-box" style="background: var(--bilibili-pink);"><i class="fas fa-plus-circle"></i></div>
+                                <span>Custom Rooms</span>
+                            </div>
+                            <i class="fas fa-chevron-down arrow-icon"></i>
+                        </button>
+
+                        <div id="custom-rooms-content" class="accordion-content">
+                            <div class="accordion-inner">
+                                <div class="setting-item">
+                                    <label>Add Room (URL or ID)</label>
+                                    <div class="custom-room-input-row">
+                                        <input type="text" id="input-custom-room" class="styled-input" placeholder="e.g. https://live.bilibili.com/12345 or 12345">
+                                        <button id="btn-add-custom-room" class="btn primary btn-add-room" title="Add"><i class="fas fa-plus"></i></button>
+                                    </div>
+                                    <div id="custom-room-status" class="custom-room-status hidden"></div>
+                                </div>
+                                <div id="custom-room-list" class="custom-room-list"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="spacer"></div>
+
                     <div class="settings-actions">
                         <button id="btn-deleted" class="btn secondary">Hidden List</button>
                         <div class="file-ops">

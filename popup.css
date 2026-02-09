@@ -454,3 +454,57 @@ input:checked + .slider:before { transform: translateX(18px); }
         box-shadow: 0 0 0 0 rgba(251, 114, 153, 0);
     }
 }
+
+/* ================= CUSTOM ROOMS ================= */
+.custom-room-input-row {
+    display: flex; gap: 8px; align-items: center;
+}
+.custom-room-input-row .styled-input { flex: 1; margin: 0; }
+.btn-add-room {
+    width: 36px; height: 36px; min-width: 36px; padding: 0;
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+}
+.custom-room-status {
+    margin-top: 6px; font-size: 12px; padding: 4px 8px; border-radius: 6px;
+    transition: opacity 0.2s;
+}
+.custom-room-status.hidden { display: none; }
+.custom-room-status.success { color: #34c759; background: rgba(52, 199, 89, 0.1); }
+.custom-room-status.error { color: var(--accent-red); background: rgba(255, 59, 48, 0.1); }
+.custom-room-status.loading { color: var(--accent-blue); background: rgba(0, 122, 255, 0.1); }
+
+.custom-room-list {
+    max-height: 180px; overflow-y: auto; margin-top: 8px;
+}
+.custom-room-list:empty { display: none; }
+.custom-room-list::-webkit-scrollbar { width: 3px; }
+.custom-room-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
+[data-theme="dark"] .custom-room-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
+
+.custom-room-item {
+    display: flex; align-items: center; padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.custom-room-item:last-child { border-bottom: none; }
+.custom-room-item img {
+    width: 32px; height: 32px; border-radius: 50%; margin-right: 10px; flex-shrink: 0;
+    object-fit: cover;
+}
+.custom-room-item .custom-room-info {
+    flex: 1; min-width: 0;
+}
+.custom-room-item .custom-room-name {
+    font-size: 13px; font-weight: 500; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.custom-room-item .custom-room-id {
+    font-size: 11px; color: var(--text-secondary);
+}
+.custom-room-item .btn-remove-custom {
+    background: var(--btn-secondary-bg); border: none; color: var(--accent-red);
+    width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; flex-shrink: 0; transition: background 0.2s;
+}
+.custom-room-item .btn-remove-custom:hover { background: var(--accent-red); color: white; }
