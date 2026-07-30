@@ -3,218 +3,244 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BiliMonitor</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="popup.css" rel="stylesheet">
+    <title data-i18n="extName"></title>
+    <link rel="stylesheet" href="../vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-    <!-- 背景光斑 -->
+    <!-- Background orbs -->
     <div class="background-orb orb-1"></div>
     <div class="background-orb orb-2"></div>
 
-    <!-- 主容器 -->
+    <!-- Main container -->
     <div class="app-container">
-        <!-- 列表区域 -->
+        <!-- Top bar: quick add room + refresh + settings -->
+        <header class="top-bar">
+            <div class="add-room-group">
+                <input type="text" id="input-add-room" class="styled-input" data-i18n-placeholder="addRoomPlaceholder">
+                <button id="btn-add-room" class="btn primary btn-add-room" data-i18n-title="addRoom"><i class="fas fa-plus"></i></button>
+            </div>
+            <button id="btn-refresh-top" class="top-bar-btn" data-i18n-title="refreshData"><i class="fas fa-sync-alt"></i></button>
+            <button id="btn-settings" class="top-bar-btn" data-i18n-title="settingsTitle"><i class="fas fa-cog"></i></button>
+        </header>
+
+        <!-- Add-room status message (auto-hides) -->
+        <div id="add-room-status" class="add-room-status hidden"></div>
+
+        <!-- Error banner (auth / risk / network), hidden by default -->
+        <div id="error-banner" class="error-banner hidden" role="alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="error-banner-text"></span>
+            <button id="error-banner-close" class="error-banner-close" data-i18n-title="dismiss"><i class="fas fa-times"></i></button>
+        </div>
+
+        <!-- Card grid -->
         <main id="grid-container" class="grid-view">
-            <!-- 动态生成内容 -->
             <div class="loading-state">
                 <div class="spinner"></div>
-                <p>Syncing...</p>
+                <p data-i18n="syncing"></p>
             </div>
         </main>
 
-        <!-- 悬浮设置按钮 -->
-        <button id="fab-settings" class="floating-btn" title="Settings">
-            <i class="fas fa-cog"></i>
-        </button>
-
-        <!-- 设置面板 (Overlay) -->
+        <!-- Settings panel (overlay) -->
         <div id="settings-panel" class="settings-overlay hidden">
             <div class="settings-card glass-panel">
                 <div class="settings-header">
-                    <h3>Settings</h3>
+                    <h3 data-i18n="settingsTitle"></h3>
                     <button id="btn-close-settings" class="icon-btn close-btn"><i class="fas fa-times"></i></button>
                 </div>
-                
+
                 <div class="settings-body">
 
-
-                    <!-- 外观设置 (手风琴) -->
+                    <!-- Appearance (accordion) -->
                     <div class="accordion-wrapper">
                         <button id="btn-toggle-appearance" class="accordion-header">
                             <div class="header-left">
                                 <div class="icon-box"><i class="fas fa-paint-brush"></i></div>
-                                <span>Appearance</span>
+                                <span data-i18n="appearance"></span>
                             </div>
                             <i class="fas fa-chevron-down arrow-icon"></i>
                         </button>
-                        
+
                         <div id="appearance-content" class="accordion-content">
                             <div class="accordion-inner">
                                 <!-- Theme Selection -->
                                 <div class="setting-item">
-                                    <label>Theme</label>
+                                    <label data-i18n="theme"></label>
                                     <div class="select-wrapper">
                                         <select id="select-theme">
-                                            <option value="light">Light</option>
-                                            <option value="dark">Dark</option>
+                                            <option value="light" data-i18n="themeLight"></option>
+                                            <option value="dark" data-i18n="themeDark"></option>
                                         </select>
                                         <i class="fas fa-chevron-down"></i>
                                     </div>
                                 </div>
 
-                                <!-- 窗口宽度 -->
+                                <!-- Window width -->
                                 <div class="setting-item range-item" id="wrap-width">
                                     <div class="label-row">
-                                        <label>Window Width</label>
+                                        <label data-i18n="windowWidth"></label>
                                         <input type="number" id="num-width" class="manual-input">
                                     </div>
                                     <input type="range" id="range-width" min="300" max="800" step="10">
                                 </div>
 
-                                <!-- 窗口高度 (Max limited to 600 due to Chrome constraints) -->
+                                <!-- Window height (max 600 due to Chrome popup constraints) -->
                                 <div class="setting-item range-item" id="wrap-height">
                                     <div class="label-row">
-                                        <label>Window Height</label>
+                                        <label data-i18n="windowHeight"></label>
                                         <input type="number" id="num-height" class="manual-input">
                                     </div>
                                     <input type="range" id="range-height" min="300" max="600" step="10">
                                 </div>
 
-                                <!-- 头像大小 -->
+                                <!-- Avatar size -->
                                 <div class="setting-item range-item" id="wrap-avatar">
                                     <div class="label-row">
-                                        <label>Avatar Size</label>
+                                        <label data-i18n="avatarSize"></label>
                                         <input type="number" id="num-avatar" class="manual-input">
                                     </div>
                                     <input type="range" id="range-avatar" min="30" max="120" step="2">
                                 </div>
 
-                                <!-- 左右间距 -->
+                                <!-- Column gap -->
                                 <div class="setting-item range-item" id="wrap-gap-x">
                                     <div class="label-row">
-                                        <label>Column Gap (X)</label>
+                                        <label data-i18n="columnGapX"></label>
                                         <input type="number" id="num-gap-x" class="manual-input">
                                     </div>
                                     <input type="range" id="range-gap-x" min="0" max="30" step="2">
                                 </div>
 
-                                <!-- 上下间距 -->
+                                <!-- Row gap -->
                                 <div class="setting-item range-item" id="wrap-gap-y">
                                     <div class="label-row">
-                                        <label>Row Gap (Y)</label>
+                                        <label data-i18n="rowGapY"></label>
                                         <input type="number" id="num-gap-y" class="manual-input">
                                     </div>
                                     <input type="range" id="range-gap-y" min="0" max="30" step="2">
                                 </div>
 
-                                <!-- 卡片内边距 (X) -->
+                                <!-- Card padding X -->
                                 <div class="setting-item range-item" id="wrap-padding-x">
                                     <div class="label-row">
-                                        <label>Card Padding X</label>
+                                        <label data-i18n="cardPaddingX"></label>
                                         <input type="number" id="num-padding-x" class="manual-input">
                                     </div>
                                     <input type="range" id="range-padding-x" min="0" max="30" step="2">
                                 </div>
 
-                                <!-- 卡片内边距 (Y) -->
+                                <!-- Card padding Y -->
                                 <div class="setting-item range-item" id="wrap-padding-y">
                                     <div class="label-row">
-                                        <label>Card Padding Y</label>
+                                        <label data-i18n="cardPaddingY"></label>
                                         <input type="number" id="num-padding-y" class="manual-input">
                                     </div>
                                     <input type="range" id="range-padding-y" min="0" max="30" step="2">
                                 </div>
 
-                                <!-- 字体大小 -->
+                                <!-- Text size -->
                                 <div class="setting-item range-item" id="wrap-font">
                                     <div class="label-row">
-                                        <label>Text Size</label>
+                                        <label data-i18n="textSize"></label>
                                         <input type="number" id="num-font" class="manual-input">
                                     </div>
                                     <input type="range" id="range-font" min="10" max="16" step="1">
                                 </div>
-                                
+
                                 <div class="setting-item toggle-row">
-                                    <label>Card Background</label>
+                                    <label data-i18n="cardBackground"></label>
                                     <label class="switch">
                                         <input type="checkbox" id="check-card-bg" checked>
                                         <span class="slider round"></span>
                                     </label>
                                 </div>
-                                
-                                <button id="btn-reset-appearance" class="btn text-only full-width">
-                                    Reset to Defaults
-                                </button>
+
+                                <button id="btn-reset-appearance" class="btn text-only full-width" data-i18n="resetToDefaults"></button>
                             </div>
                         </div>
                     </div>
 
                     <div class="spacer"></div>
 
-                    <!-- 常规设置 -->
+                    <!-- General settings -->
                     <div class="section-title">
                         <div class="icon-box"><i class="fas fa-sliders-h"></i></div>
-                        <span>General</span>
+                        <span data-i18n="general"></span>
                     </div>
 
                     <div class="setting-group">
+                        <!-- Monitor mode switch -->
                         <div class="setting-item">
-                            <label>Refresh Interval (s)</label>
+                            <label data-i18n="monitorMode"></label>
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="monitor-mode" value="following">
+                                    <span data-i18n="modeFollowing"></span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="monitor-mode" value="medal">
+                                    <span data-i18n="modeMedal"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <label data-i18n="refreshInterval"></label>
                             <input type="number" id="input-interval" min="30" value="60" class="styled-input">
                         </div>
 
                         <div class="setting-item">
-                            <label>Badge Notifications</label>
+                            <label data-i18n="badgeNotifications"></label>
                             <div class="select-wrapper">
                                 <select id="select-notification">
-                                    <option value="2">All Live</option>
-                                    <option value="3">Favorites & Likes</option>
-                                    <option value="1">Favorites Only</option>
-                                    <option value="0">Off</option>
+                                    <option value="2" data-i18n="notifyAllLive"></option>
+                                    <option value="3" data-i18n="notifyFavoritesLikes"></option>
+                                    <option value="1" data-i18n="notifyFavoritesOnly"></option>
+                                    <option value="0" data-i18n="notifyOff"></option>
                                 </select>
                                 <i class="fas fa-chevron-down"></i>
                             </div>
                         </div>
 
                         <div class="setting-item">
-                            <label>Browser Notify</label>
+                            <label data-i18n="browserNotify"></label>
                             <div class="select-wrapper">
                                 <select id="select-browser-notify">
-                                    <option value="2">All Live</option>
-                                    <option value="3">Favorites & Likes</option>
-                                    <option value="1">Favorites Only</option>
-                                    <option value="0">Off</option>
+                                    <option value="2" data-i18n="notifyAllLive"></option>
+                                    <option value="3" data-i18n="notifyFavoritesLikes"></option>
+                                    <option value="1" data-i18n="notifyFavoritesOnly"></option>
+                                    <option value="0" data-i18n="notifyOff"></option>
                                 </select>
                                 <i class="fas fa-chevron-down"></i>
                             </div>
                         </div>
 
                         <div class="setting-item">
-                            <label>Preview Mode</label>
+                            <label data-i18n="previewMode"></label>
                             <div class="select-wrapper">
                                 <select id="select-preview-mode">
-                                    <option value="thumbnail">Thumbnail</option>
-                                    <option value="live">Live Player</option>
+                                    <option value="thumbnail" data-i18n="previewThumbnail"></option>
+                                    <option value="live" data-i18n="previewLive"></option>
                                 </select>
                                 <i class="fas fa-chevron-down"></i>
                             </div>
                         </div>
 
                         <div class="setting-item" id="wrap-preview-sound">
-                    <div class="label-row">
-                        <label>Preview Sound</label>
-                        <label class="switch">
-                            <input type="checkbox" id="check-preview-sound">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                </div>
+                            <div class="label-row">
+                                <label data-i18n="previewSound"></label>
+                                <label class="switch">
+                                    <input type="checkbox" id="check-preview-sound">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
 
                         <div class="setting-item" id="wrap-preview-volume">
                             <div class="label-row">
-                                <label>Volume</label>
-                                <span id="val-preview-volume" style="font-size:12px; font-weight:600; color:var(--accent-blue);">50%</span>
+                                <label data-i18n="volume"></label>
+                                <span id="val-preview-volume" style="font-size:12px; font-weight:600; color:var(--accent-blue);"></span>
                             </div>
                             <input type="range" id="range-preview-volume" min="0" max="100" step="1">
                         </div>
@@ -222,26 +248,19 @@
 
                     <div class="spacer"></div>
 
-                    <!-- 自定义直播间 (手风琴) -->
+                    <!-- Custom rooms management (accordion; adding lives in the top bar) -->
                     <div class="accordion-wrapper" id="accordion-custom-rooms">
                         <button id="btn-toggle-custom-rooms" class="accordion-header">
                             <div class="header-left">
                                 <div class="icon-box" style="background: var(--bilibili-pink);"><i class="fas fa-plus-circle"></i></div>
-                                <span>Custom Rooms</span>
+                                <span data-i18n="customRooms"></span>
                             </div>
                             <i class="fas fa-chevron-down arrow-icon"></i>
                         </button>
 
                         <div id="custom-rooms-content" class="accordion-content">
                             <div class="accordion-inner">
-                                <div class="setting-item">
-                                    <label>Add Room (URL or ID)</label>
-                                    <div class="custom-room-input-row">
-                                        <input type="text" id="input-custom-room" class="styled-input" placeholder="e.g. https://live.bilibili.com/12345 or 12345">
-                                        <button id="btn-add-custom-room" class="btn primary btn-add-room" title="Add"><i class="fas fa-plus"></i></button>
-                                    </div>
-                                    <div id="custom-room-status" class="custom-room-status hidden"></div>
-                                </div>
+                                <p class="custom-rooms-hint" data-i18n="customRoomsHint"></p>
                                 <div id="custom-room-list" class="custom-room-list"></div>
                             </div>
                         </div>
@@ -250,57 +269,57 @@
                     <div class="spacer"></div>
 
                     <div class="settings-actions">
-                        <button id="btn-deleted" class="btn secondary">Hidden List</button>
+                        <button id="btn-deleted" class="btn secondary" data-i18n="hiddenList"></button>
                         <div class="file-ops">
-                            <button id="btn-export" class="btn icon-only" title="Export"><i class="fas fa-upload"></i></button>
-                            <button id="btn-import" class="btn icon-only" title="Import"><i class="fas fa-download"></i></button>
+                            <button id="btn-export" class="btn icon-only" data-i18n-title="exportSettings"><i class="fas fa-upload"></i></button>
+                            <button id="btn-import" class="btn icon-only" data-i18n-title="importSettings"><i class="fas fa-download"></i></button>
                             <input type="file" id="file-import" accept=".json" hidden>
                         </div>
                     </div>
 
                     <div class="spacer"></div>
 
-                    <!-- 刷新按钮 -->
+                    <!-- Manual refresh -->
                     <button id="btn-manual-refresh" class="btn primary full-width">
-                        <i class="fas fa-sync-alt"></i> Refresh Data
+                        <i class="fas fa-sync-alt"></i> <span data-i18n="refreshData"></span>
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- 删除列表面板 -->
+        <!-- Hidden streamers panel -->
         <div id="deleted-panel" class="settings-overlay hidden">
             <div class="settings-card glass-panel">
                 <div class="settings-header">
-                    <h3>Hidden Streamers</h3>
+                    <h3 data-i18n="hiddenStreamers"></h3>
                     <button id="btn-close-deleted" class="icon-btn close-btn"><i class="fas fa-arrow-left"></i></button>
                 </div>
                 <div id="deleted-list" class="deleted-list-container"></div>
             </div>
         </div>
 
-        <!-- 悬浮预览卡片 -->
+        <!-- Hover preview card -->
         <div id="preview-tooltip" class="preview-card glass-panel hidden">
             <div class="preview-image-wrapper">
-                <img id="preview-img" src="" alt="Preview">
+                <img id="preview-img" src="" alt="">
                 <iframe id="preview-iframe" class="hidden" frameborder="0" scrolling="no" allow="autoplay; encrypted-media" allowfullscreen></iframe>
                 <div id="preview-loader" class="preview-loader"><div class="spinner-small"></div></div>
             </div>
             <div class="preview-info">
-                <h4 id="preview-title">Loading...</h4>
+                <h4 id="preview-title" data-i18n="loading"></h4>
                 <span id="preview-time">--:--</span>
             </div>
         </div>
     </div>
 
-    <!-- 上下文菜单 -->
+    <!-- Context menu -->
     <div id="context-menu" class="glass-menu hidden">
-        <div class="menu-item" data-action="favorite"><i class="fas fa-heart"></i> Favorite</div>
-        <div class="menu-item" data-action="like"><i class="fas fa-star"></i> Like</div>
+        <div class="menu-item" data-action="favorite"><i class="fas fa-heart"></i> <span data-i18n="favorite"></span></div>
+        <div class="menu-item" data-action="like"><i class="fas fa-star"></i> <span data-i18n="like"></span></div>
         <div class="menu-divider"></div>
-        <div class="menu-item danger" data-action="hide"><i class="fas fa-eye-slash"></i> Hide</div>
+        <div class="menu-item danger" data-action="hide"><i class="fas fa-eye-slash"></i> <span data-i18n="hide"></span></div>
     </div>
 
-    <script src="popup.js"></script>
+    <script type="module" src="index.js"></script>
 </body>
 </html>

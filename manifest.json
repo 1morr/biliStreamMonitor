@@ -1,8 +1,9 @@
 {
     "manifest_version": 3,
+    "default_locale": "en",
     "name": "BiliStreamMonitor",
-    "version": "2.0",
-    "description": "Monitoring of Bilibili streamers based on your medal wall.",
+    "version": "3.0",
+    "description": "Monitor Bilibili live status of your followed streamers (full-following or medal wall mode).",
     "permissions": [
         "cookies",
         "storage",
@@ -15,17 +16,11 @@
         "https://*.hdslb.com/*"
     ],
     "action": {
-        "default_popup": "popup.html",
+        "default_popup": "popup/popup.html",
         "default_icon": {
             "128": "images/icon128.png"
         }
     },
-    "web_accessible_resources": [
-        {
-            "resources": ["images/NA.png"],
-            "matches": ["<all_urls>"]
-        }
-    ],
     "content_scripts": [
         {
             "matches": ["*://www.bilibili.com/blackboard/live/live-activity-player.html*"],
@@ -35,7 +30,8 @@
         }
     ],
     "background": {
-        "service_worker": "background.js"
+        "service_worker": "background/index.js",
+        "type": "module"
     },
     "icons": {
         "128": "images/icon128.png"
