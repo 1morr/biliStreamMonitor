@@ -1,5 +1,6 @@
-// Popup entry point: state loading, top bar (quick add room / refresh /
-// settings), error banner, and the background message listener.
+// Popup entry point: state loading, global controls (add room, manual
+// refresh, settings FAB + mode speed-dial), error banner, and the
+// background message listener.
 
 import { applyI18n, escapeHtml, t } from '../shared/i18n.js';
 import { getState, setState, migrateIfNeeded } from '../shared/storage.js';
@@ -42,9 +43,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await migrateIfNeeded(); // idempotent; converges legacy keys before first read
     await loadData();
     await updateErrorBanner();
-    setupTopBar();
+    setupControls();
     initContextMenu(State);
-    setupSettings(State, { onImported: loadData });
+    setupSettings(State, { onImported: loadData, onModeChanged: updateModeFab });
 
     // Always clear the badge when the popup is opened
     chrome.action.setBadgeText({ text: '' });
@@ -83,6 +84,7 @@ async function loadData() {
         applyTheme(State);
         renderGrid(State);
         updateSettingsUI(State);
+        updateModeFab();
         renderCustomRoomList(State);
     } catch (e) {
         console.error(e);
@@ -122,20 +124,22 @@ async function updateErrorBanner() {
     errorBanner.className = `error-banner ${severity}`;
 }
 
-// --- Top bar ---
-function setupTopBar() {
+// --- Global controls ---
+function setupControls() {
     document.getElementById('error-banner-close').onclick = () => {
         bannerDismissed = true;
         errorBanner.classList.add('hidden');
     };
 
-    bindRefreshButton(document.getElementById('btn-refresh-top'), false);
     bindRefreshButton(document.getElementById('btn-manual-refresh'), true);
 
+    // The add-room input lives in the settings custom-rooms accordion
     document.getElementById('btn-add-room').onclick = () => addRoom();
     document.getElementById('input-add-room').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') addRoom();
     });
+
+    document.getElementById('fab-mode').onclick = () => toggleMonitorMode();
 }
 
 function bindRefreshButton(btn, withText) {
@@ -153,7 +157,27 @@ function bindRefreshButton(btn, withText) {
     };
 }
 
-// --- Quick add room (moved from the settings panel to the top bar) ---
+// --- Mode speed-dial button ---
+// The icon shows the CURRENT mode; the tooltip names the mode a click
+// switches to. The settings-panel radios stay in sync both ways.
+const MODE_FAB_ICON = { following: 'fas fa-users', medal: 'fas fa-medal' };
+const MODE_TOOLTIP_KEY = { following: 'modeSwitchToMedal', medal: 'modeSwitchToFollowing' };
+
+function updateModeFab() {
+    const btn = document.getElementById('fab-mode');
+    btn.querySelector('i').className = MODE_FAB_ICON[State.monitorMode] || MODE_FAB_ICON.following;
+    btn.title = t(MODE_TOOLTIP_KEY[State.monitorMode] || MODE_TOOLTIP_KEY.following);
+}
+
+async function toggleMonitorMode() {
+    State.monitorMode = State.monitorMode === 'medal' ? 'following' : 'medal';
+    await setState({ monitorMode: State.monitorMode });
+    updateModeFab();
+    updateSettingsUI(State); // sync the settings radios if the panel is open
+    chrome.runtime.sendMessage({ type: 'updateStreamers' }).catch(() => {});
+}
+
+// --- Add room (input lives in the settings custom-rooms accordion) ---
 function parseRoomId(input) {
     input = input.trim();
     const urlMatch = input.match(/live\.bilibili\.com\/(\d+)/);
@@ -165,7 +189,7 @@ function parseRoomId(input) {
 function showAddRoomStatus(msg, type) {
     const el = document.getElementById('add-room-status');
     el.textContent = msg;
-    el.className = `add-room-status ${type}`;
+    el.className = `custom-room-status ${type}`;
     if (type !== 'loading') {
         setTimeout(() => el.classList.add('hidden'), 3000);
     }

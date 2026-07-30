@@ -87,6 +87,14 @@
         "message": "Medal Wall",
         "description": "Monitor mode option: watch only streamers on the medal wall."
     },
+    "modeSwitchToFollowing": {
+        "message": "Switch to All Following mode",
+        "description": "Tooltip of the floating mode-switch button while the medal wall mode is active."
+    },
+    "modeSwitchToMedal": {
+        "message": "Switch to Medal Wall mode",
+        "description": "Tooltip of the floating mode-switch button while the following mode is active."
+    },
     "refreshInterval": {
         "message": "Refresh Interval (s)",
         "description": "Label of the refresh interval input, in seconds."
@@ -139,17 +147,13 @@
         "message": "Custom Rooms",
         "description": "Custom rooms accordion header in settings."
     },
-    "customRoomsHint": {
-        "message": "Use the top bar input to add rooms.",
-        "description": "Hint inside the custom rooms accordion pointing to the top bar."
-    },
     "addRoom": {
         "message": "Add Room",
-        "description": "Tooltip of the top bar add-room button."
+        "description": "Label and tooltip of the add-room button in the custom rooms accordion."
     },
     "addRoomPlaceholder": {
         "message": "Room URL or ID, e.g. 12345",
-        "description": "Placeholder of the top bar add-room input."
+        "description": "Placeholder of the add-room input in the custom rooms accordion."
     },
     "refreshData": {
         "message": "Refresh Data",

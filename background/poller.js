@@ -93,6 +93,27 @@ export async function runUpdateCycle(trigger) {
             if (truncated) {
                 console.warn(`Following list truncated: collected ${live.length} of ~${liveCount} live entries`);
             }
+            // Enrich live entries with medal data: +1 MedalWall request per cycle in following mode.
+            const selfUid = await getTargetUid();
+            if (selfUid != null) {
+                try {
+                    const medalWall = await fetchMedalWall(selfUid);
+                    const medalByUid = new Map(
+                        medalWall.map(m => [Number(m.uid), { medalName: m.medalName, medalLevel: m.medalLevel }])
+                    );
+                    for (const streamer of live) {
+                        const medal = medalByUid.get(Number(streamer.uid));
+                        if (medal) {
+                            streamer.medalName = medal.medalName;
+                            streamer.medalLevel = medal.medalLevel;
+                        }
+                    }
+                } catch (e) {
+                    // Tolerated (incl. risk control): the list still renders without medal data,
+                    // and the error must not escalate into a cycle failure.
+                    console.warn('Medal enrichment failed, continuing without medal data:', e);
+                }
+            }
             modeStreamers = live;
         }
 

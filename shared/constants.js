@@ -31,7 +31,7 @@ export const NotifyPref = Object.freeze({
 // Note: mutable defaults (arrays/objects) must be cloned by consumers.
 export const STORAGE_DEFAULTS = Object.freeze({
     schemaVersion: 2,
-    monitorMode: MonitorMode.FOLLOWING,
+    monitorMode: MonitorMode.MEDAL,
     streamingInfo: [],
     customStreamers: [],
     streamerStates: {},

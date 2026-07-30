@@ -14,19 +14,6 @@
 
     <!-- Main container -->
     <div class="app-container">
-        <!-- Top bar: quick add room + refresh + settings -->
-        <header class="top-bar">
-            <div class="add-room-group">
-                <input type="text" id="input-add-room" class="styled-input" data-i18n-placeholder="addRoomPlaceholder">
-                <button id="btn-add-room" class="btn primary btn-add-room" data-i18n-title="addRoom"><i class="fas fa-plus"></i></button>
-            </div>
-            <button id="btn-refresh-top" class="top-bar-btn" data-i18n-title="refreshData"><i class="fas fa-sync-alt"></i></button>
-            <button id="btn-settings" class="top-bar-btn" data-i18n-title="settingsTitle"><i class="fas fa-cog"></i></button>
-        </header>
-
-        <!-- Add-room status message (auto-hides) -->
-        <div id="add-room-status" class="add-room-status hidden"></div>
-
         <!-- Error banner (auth / risk / network), hidden by default -->
         <div id="error-banner" class="error-banner hidden" role="alert">
             <i class="fas fa-exclamation-triangle"></i>
@@ -41,6 +28,12 @@
                 <p data-i18n="syncing"></p>
             </div>
         </main>
+
+        <!-- FAB cluster: settings button with a hover-revealed mode switch -->
+        <div class="fab-container" id="fab-container">
+            <button id="fab-mode" class="floating-btn fab-mini"><i class="fas fa-users"></i></button>
+            <button id="fab-settings" class="floating-btn" data-i18n-title="settingsTitle"><i class="fas fa-cog"></i></button>
+        </div>
 
         <!-- Settings panel (overlay) -->
         <div id="settings-panel" class="settings-overlay hidden">
@@ -248,7 +241,7 @@
 
                     <div class="spacer"></div>
 
-                    <!-- Custom rooms management (accordion; adding lives in the top bar) -->
+                    <!-- Custom rooms management (accordion) -->
                     <div class="accordion-wrapper" id="accordion-custom-rooms">
                         <button id="btn-toggle-custom-rooms" class="accordion-header">
                             <div class="header-left">
@@ -260,7 +253,14 @@
 
                         <div id="custom-rooms-content" class="accordion-content">
                             <div class="accordion-inner">
-                                <p class="custom-rooms-hint" data-i18n="customRoomsHint"></p>
+                                <div class="setting-item">
+                                    <label data-i18n="addRoom"></label>
+                                    <div class="custom-room-input-row">
+                                        <input type="text" id="input-add-room" class="styled-input" data-i18n-placeholder="addRoomPlaceholder">
+                                        <button id="btn-add-room" class="btn primary btn-add-room" data-i18n-title="addRoom"><i class="fas fa-plus"></i></button>
+                                    </div>
+                                    <div id="add-room-status" class="custom-room-status hidden"></div>
+                                </div>
                                 <div id="custom-room-list" class="custom-room-list"></div>
                             </div>
                         </div>

@@ -128,7 +128,7 @@ function updateAudioControlsState(state) {
     }
 }
 
-// --- Custom room list management (add lives in the top bar now) ---
+// --- Custom room list management ---
 
 export function renderCustomRoomList(state) {
     const container = document.getElementById('custom-room-list');
@@ -207,8 +207,10 @@ async function restoreStreamer(state, uid) {
  * @param {Object} callbacks
  * @param {Function} callbacks.onImported called after a successful config
  *   import so the entry point can reload state and re-render
+ * @param {Function} callbacks.onModeChanged called after the monitor mode
+ *   radio changes so the entry point can sync the mode FAB
  */
-export function setupSettings(state, { onImported } = {}) {
+export function setupSettings(state, { onImported, onModeChanged } = {}) {
     // 1. Accordion toggles
     const wrapperAppearance = document.querySelector('.accordion-wrapper');
     document.getElementById('btn-toggle-appearance').onclick = () => {
@@ -220,8 +222,11 @@ export function setupSettings(state, { onImported } = {}) {
         wrapperCustomRooms.classList.toggle('open');
     };
 
-    // 2. Panel open/close (open button lives in the top bar)
-    document.getElementById('btn-settings').onclick = () => settingsPanel.classList.remove('hidden');
+    // 2. Panel open/close (open button is the settings FAB)
+    document.getElementById('fab-settings').onclick = () => {
+        updateSettingsUI(state); // reflect the latest state on every open
+        settingsPanel.classList.remove('hidden');
+    };
     document.getElementById('btn-close-settings').onclick = () => settingsPanel.classList.add('hidden');
 
     // --- Appearance sliders ---
@@ -357,6 +362,7 @@ export function setupSettings(state, { onImported } = {}) {
             if (!e.target.checked) return;
             state.monitorMode = e.target.value;
             await setState({ monitorMode: e.target.value });
+            if (onModeChanged) onModeChanged(); // keep the mode FAB in sync
             chrome.runtime.sendMessage({ type: 'updateStreamers' }).catch(() => {});
         });
     });
