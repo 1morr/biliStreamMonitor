@@ -181,6 +181,10 @@ export async function runUpdateCycle(trigger) {
             if (badgePref === NotifyPref.OFF) return false;
             if (badgePref === NotifyPref.FAVORITES) return mark === 'favorite';
             if (badgePref === NotifyPref.LIKED_AND_FAVORITES) return mark === 'favorite' || mark === 'like';
+            if (badgePref === NotifyPref.MEDAL_ONLY) {
+                const streamer = liveByUid.get(uid);
+                return streamer.medalName != null || streamer.isCustom === true;
+            }
             return true; // NotifyPref.ALL
         });
         let badgeColorType = 'normal';

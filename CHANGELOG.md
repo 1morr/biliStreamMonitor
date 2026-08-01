@@ -4,6 +4,12 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [3.2.0] - 2026-07-29
+
+### Added
+
+- **通知對象新增「僅勳章牆主播」選項**（偏好碼 `'4'`）：Badge Notifications 與 Browser Notify 兩個下拉皆可選；僅勳章牆成員（以及手動添加的自訂房間）會觸發角標計數 / 桌面通知。全關注模式下直接利用 v3.1 的勳章 enrichment 資料判斷，零額外請求；勳章牆模式下等效「全部」。
+
 ## [3.1.0] - 2026-07-29
 
 依使用者回饋調整預設模式與彈窗介面配置。

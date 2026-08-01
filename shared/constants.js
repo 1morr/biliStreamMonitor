@@ -18,12 +18,14 @@ export const MonitorMode = Object.freeze({
 // Notification preference codes, shared by the badge counter
 // (notificationPreference) and browser notifications
 // (browserNotificationPreference). Semantics per background.js:
-// '0' = off, '1' = favorites only, '2' = all, '3' = liked + favorites.
+// '0' = off, '1' = favorites only, '2' = all, '3' = liked + favorites,
+// '4' = medal wall members (plus custom rooms).
 export const NotifyPref = Object.freeze({
     OFF: '0',                  // disabled
     FAVORITES: '1',            // only streamers marked 'favorite'
     ALL: '2',                  // all streamers
-    LIKED_AND_FAVORITES: '3'   // streamers marked 'favorite' or 'like'
+    LIKED_AND_FAVORITES: '3',  // streamers marked 'favorite' or 'like'
+    MEDAL_ONLY: '4'            // medal wall members (plus custom rooms)
 });
 
 // Full chrome.storage.local key set with defaults.

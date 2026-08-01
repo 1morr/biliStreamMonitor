@@ -44,7 +44,9 @@ export async function sendLiveNotifications(streamers, browserPref, streamerStat
         const mark = streamerStates[uid];
         const shouldNotify = browserPref === NotifyPref.ALL
             || (browserPref === NotifyPref.FAVORITES && mark === 'favorite')
-            || (browserPref === NotifyPref.LIKED_AND_FAVORITES && (mark === 'favorite' || mark === 'like'));
+            || (browserPref === NotifyPref.LIKED_AND_FAVORITES && (mark === 'favorite' || mark === 'like'))
+            || (browserPref === NotifyPref.MEDAL_ONLY
+                && (streamer.medalName != null || streamer.isCustom === true));
         if (!shouldNotify) continue;
 
         // Stable id (audit #15): re-notifying the same uid replaces the previous

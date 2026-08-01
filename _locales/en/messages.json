@@ -119,6 +119,10 @@
         "message": "Favorites Only",
         "description": "Notification preference option: only streamers marked favorite."
     },
+    "notifyPrefMedalOnly": {
+        "message": "Medal wall only",
+        "description": "Notification preference option: only medal wall members (custom rooms always included)."
+    },
     "notifyOff": {
         "message": "Off",
         "description": "Notification preference option: disabled."

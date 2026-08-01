@@ -119,6 +119,10 @@
         "message": "仅最爱",
         "description": "Notification preference option: only streamers marked favorite."
     },
+    "notifyPrefMedalOnly": {
+        "message": "仅勋章墙主播",
+        "description": "Notification preference option: only medal wall members (custom rooms always included)."
+    },
     "notifyOff": {
         "message": "关闭",
         "description": "Notification preference option: disabled."
