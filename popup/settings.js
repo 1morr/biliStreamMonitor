@@ -1,11 +1,18 @@
-// Popup module: settings panel (appearance, general, monitor mode, custom
+// Popup module: settings panel (appearance, alert scope, general, custom
 // room management, hidden list, import/export).
 
-import { MIN_REFRESH_INTERVAL } from '../shared/constants.js';
+import {
+    MIN_REFRESH_INTERVAL,
+    ALERT_SOURCES,
+    ALERT_CHANNELS,
+    BATCH_UID_LIMIT,
+    FOLLOW_PAGE_ESTIMATE
+} from '../shared/constants.js';
 import { getState, setState, importConfig, exportConfig } from '../shared/storage.js';
 import { escapeHtml, t } from '../shared/i18n.js';
 import { normalizeStreamer } from '../shared/merge.js';
-import { renderGrid } from './cards.js';
+import { sourceOf, needsFollowing, watchedUids, channelSources } from '../shared/scope.js';
+import { renderGrid, knownLiveStreamers } from './cards.js';
 import { updateIframeAudio } from './preview.js';
 
 export const DEFAULT_APPEARANCE = {
@@ -22,6 +29,10 @@ export const DEFAULT_APPEARANCE = {
 };
 
 const FALLBACK_ICON = chrome.runtime.getURL('images/icon128.png');
+
+// Set by setupSettings; lets the list editors below refresh the display dial,
+// whose per-mode counts change whenever the known population does.
+let notifyScopeChanged = () => {};
 
 const settingsPanel = document.getElementById('settings-panel');
 const deletedPanel = document.getElementById('deleted-panel');
@@ -58,16 +69,12 @@ function saveAppearance(state) {
 
 export function updateSettingsUI(state) {
     document.getElementById('input-interval').value = state.refreshInterval;
-    document.getElementById('select-notification').value = state.notificationPref;
-    document.getElementById('select-browser-notify').value = state.browserNotify;
     document.getElementById('select-preview-mode').value = state.previewMode;
     document.getElementById('check-preview-sound').checked = state.previewSound;
     document.getElementById('range-preview-volume').value = state.previewVolume;
     document.getElementById('val-preview-volume').textContent = `${state.previewVolume}%`;
 
-    document.querySelectorAll('input[name="monitor-mode"]').forEach(radio => {
-        radio.checked = radio.value === state.monitorMode;
-    });
+    renderScopeMatrix(state);
 
     const app = state.appearance;
 
@@ -161,6 +168,7 @@ async function removeCustomRoom(state, uid) {
     await setState({ customStreamers: state.customStreamers });
     renderCustomRoomList(state);
     renderGrid(state);
+    notifyScopeChanged();
 }
 
 // --- Hidden (deleted) streamers list ---
@@ -197,6 +205,129 @@ async function restoreStreamer(state, uid) {
     await setState({ deletedStreamers: state.deletedUids });
     renderDeletedList(state);
     renderGrid(state);
+    notifyScopeChanged();
+}
+
+// --- Alert scope matrix ---
+
+/**
+ * Live headcount per source bucket. Buckets are mutually exclusive
+ * (shared/scope.js sourceOf), which is what lets the tallies be plain sums.
+ *
+ * 'rest' is only knowable when the follow list has actually been fetched —
+ * either because the source is subscribed, or because the "all" view pulled a
+ * snapshot. Otherwise it reads as unknown rather than as a fabricated zero.
+ */
+function sourceCounts(state) {
+    const counts = Object.fromEntries(ALERT_SOURCES.map(source => [source, 0]));
+    for (const streamer of knownLiveStreamers(state)) {
+        counts[sourceOf(streamer, state.states)] += 1;
+    }
+    const restKnown = needsFollowing(state.alertScope)
+        || (state.followingCache && state.followingCache.list.length > 0);
+    return { counts, restKnown };
+}
+
+/** Requests one refresh cycle will make under the current scope. */
+function cycleCost(state) {
+    const tracked = watchedUids(state.customStreamers, state.states, new Set());
+    const batches = Math.ceil(tracked.length / BATCH_UID_LIMIT);
+    const paging = needsFollowing(state.alertScope);
+    return {
+        requests: 1 + batches + (paging ? FOLLOW_PAGE_ESTIMATE : 0),
+        approximate: paging
+    };
+}
+
+export function renderScopeMatrix(state) {
+    const { counts, restKnown } = sourceCounts(state);
+
+    for (const source of ALERT_SOURCES) {
+        const cell = document.getElementById(`count-${source}`);
+        if (cell) {
+            cell.textContent = (source === 'rest' && !restKnown) ? '—' : String(counts[source]);
+        }
+    }
+
+    for (const channel of ALERT_CHANNELS) {
+        const sources = channelSources(state.alertScope, channel);
+        let tally = 0;
+        let anyChecked = false;
+
+        for (const source of ALERT_SOURCES) {
+            const box = document.getElementById(`chk-${channel}-${source}`);
+            const on = Boolean(sources[source]);
+            if (box) {
+                box.classList.toggle('on', on);
+                box.setAttribute('aria-checked', String(on));
+            }
+            if (on) {
+                anyChecked = true;
+                if (source !== 'rest' || restKnown) tally += counts[source];
+            }
+        }
+
+        const pill = document.getElementById(`scope-tally-${channel}`);
+        if (pill) {
+            const key = channel === 'badge' ? 'scopeTallyBadge' : 'scopeTallyNotify';
+            const offKey = channel === 'badge' ? 'scopeTallyBadgeOff' : 'scopeTallyNotifyOff';
+            pill.textContent = anyChecked ? t(key, [String(tally)]) : t(offKey);
+            pill.classList.toggle('off', !anyChecked);
+        }
+    }
+
+    const cost = cycleCost(state);
+    const costPill = document.getElementById('scope-cost');
+    if (costPill) {
+        costPill.textContent = cost.approximate
+            ? t('scopeCostApprox', [String(cost.requests)])
+            : t('scopeCost', [String(cost.requests)]);
+        costPill.classList.toggle('heavy', cost.approximate);
+    }
+
+    // The 'alert' display mode is the union of both columns, so it needs its
+    // own number — with divergent columns it matches neither one.
+    const unionHint = document.getElementById('scope-union-hint');
+    if (unionHint) {
+        let union = 0;
+        for (const source of ALERT_SOURCES) {
+            const subscribed = ALERT_CHANNELS.some(
+                channel => channelSources(state.alertScope, channel)[source]
+            );
+            if (subscribed && (source !== 'rest' || restKnown)) union += counts[source];
+        }
+        unionHint.textContent = t('scopeUnionHint', [String(union)]);
+    }
+}
+
+/**
+ * Wire the ten checkboxes. Each flip can change the fetch plan, so the refresh
+ * is debounced: firing a cycle per click during a multi-box edit would be both
+ * wasteful and a risk-control nudge.
+ */
+function bindScopeMatrix(state, onScopeChanged) {
+    let refreshTimer = null;
+    const scheduleRefresh = () => {
+        clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(() => {
+            chrome.runtime.sendMessage({ type: 'updateStreamers' }).catch(() => {});
+        }, 800);
+    };
+
+    for (const channel of ALERT_CHANNELS) {
+        for (const source of ALERT_SOURCES) {
+            const box = document.getElementById(`chk-${channel}-${source}`);
+            if (!box) continue;
+            box.addEventListener('click', async () => {
+                const sources = channelSources(state.alertScope, channel);
+                sources[source] = !sources[source];
+                await setState({ alertScope: state.alertScope });
+                renderScopeMatrix(state);
+                if (onScopeChanged) onScopeChanged();
+                scheduleRefresh();
+            });
+        }
+    }
 }
 
 // --- Event wiring ---
@@ -207,10 +338,12 @@ async function restoreStreamer(state, uid) {
  * @param {Object} callbacks
  * @param {Function} callbacks.onImported called after a successful config
  *   import so the entry point can reload state and re-render
- * @param {Function} callbacks.onModeChanged called after the monitor mode
- *   radio changes so the entry point can sync the mode FAB
+ * @param {Function} callbacks.onScopeChanged called after the alert scope
+ *   changes so the entry point can re-render the grid and the display dial
  */
-export function setupSettings(state, { onImported, onModeChanged } = {}) {
+export function setupSettings(state, { onImported, onScopeChanged } = {}) {
+    if (onScopeChanged) notifyScopeChanged = onScopeChanged;
+
     // 1. Accordion toggles
     const wrapperAppearance = document.querySelector('.accordion-wrapper');
     document.getElementById('btn-toggle-appearance').onclick = () => {
@@ -326,14 +459,6 @@ export function setupSettings(state, { onImported, onModeChanged } = {}) {
         setState({ refreshInterval: val });
         chrome.runtime.sendMessage({ type: 'setRefreshInterval', interval: val }).catch(() => {});
     };
-    document.getElementById('select-notification').onchange = (e) => {
-        state.notificationPref = e.target.value;
-        setState({ notificationPreference: e.target.value });
-    };
-    document.getElementById('select-browser-notify').onchange = (e) => {
-        state.browserNotify = e.target.value;
-        setState({ browserNotificationPreference: e.target.value });
-    };
     document.getElementById('select-preview-mode').onchange = (e) => {
         state.previewMode = e.target.value;
         setState({ previewMode: e.target.value });
@@ -356,16 +481,8 @@ export function setupSettings(state, { onImported, onModeChanged } = {}) {
         setState({ previewVolume: parseInt(e.target.value, 10) });
     };
 
-    // --- Monitor mode switch ---
-    document.querySelectorAll('input[name="monitor-mode"]').forEach(radio => {
-        radio.addEventListener('change', async (e) => {
-            if (!e.target.checked) return;
-            state.monitorMode = e.target.value;
-            await setState({ monitorMode: e.target.value });
-            if (onModeChanged) onModeChanged(); // keep the mode FAB in sync
-            chrome.runtime.sendMessage({ type: 'updateStreamers' }).catch(() => {});
-        });
-    });
+    // --- Alert scope matrix ---
+    bindScopeMatrix(state, onScopeChanged);
 
     // --- Hidden list panel ---
     document.getElementById('btn-deleted').onclick = () => {

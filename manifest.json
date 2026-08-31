@@ -2,8 +2,8 @@
     "manifest_version": 3,
     "default_locale": "en",
     "name": "BiliStreamMonitor",
-    "version": "3.2",
-    "description": "Monitor Bilibili live status of your followed streamers (full-following or medal wall mode).",
+    "version": "4.0",
+    "description": "Monitor Bilibili live status for your medal wall, custom rooms and marked streamers.",
     "permissions": [
         "cookies",
         "storage",
@@ -23,8 +23,12 @@
     },
     "content_scripts": [
         {
-            "matches": ["*://www.bilibili.com/blackboard/live/live-activity-player.html*"],
-            "js": ["content_script.js"],
+            "matches": [
+                "*://www.bilibili.com/blackboard/live/live-activity-player.html*"
+            ],
+            "js": [
+                "content_script.js"
+            ],
             "all_frames": true,
             "run_at": "document_end"
         }

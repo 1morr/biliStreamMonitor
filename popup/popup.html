@@ -29,9 +29,16 @@
             </div>
         </main>
 
-        <!-- FAB cluster: settings button with a hover-revealed mode switch -->
+        <!-- FAB cluster: settings button with a hover-revealed display-mode dial.
+             Dial order puts the default mode nearest the settings button, i.e.
+             nearest the cursor that just opened it. -->
         <div class="fab-container" id="fab-container">
-            <button id="fab-mode" class="floating-btn fab-mini"><i class="fas fa-users"></i></button>
+            <div class="fab-dial" id="fab-dial">
+                <button class="floating-btn fab-mini" data-view="all"><i class="fas fa-users"></i></button>
+                <button class="floating-btn fab-mini" data-view="mark"><i class="fas fa-heart"></i></button>
+                <button class="floating-btn fab-mini" data-view="medal"><i class="fas fa-medal"></i></button>
+                <button class="floating-btn fab-mini" data-view="alert"><i class="fas fa-bell"></i></button>
+            </div>
             <button id="fab-settings" class="floating-btn" data-i18n-title="settingsTitle"><i class="fas fa-cog"></i></button>
         </div>
 
@@ -157,58 +164,121 @@
                     <div class="spacer"></div>
 
                     <!-- General settings -->
+                    <!-- Alert scope: sources x channels. The checked sources also
+                         decide what gets fetched, so there is no second switch
+                         that can silently void this one. -->
+                    <div class="section-title">
+                        <div class="icon-box" style="background: var(--accent-blue);"><i class="fas fa-bell"></i></div>
+                        <span data-i18n="alertScope"></span>
+                    </div>
+
+                    <div class="setting-group">
+                        <table class="scope-matrix">
+                            <tr class="mx-head">
+                                <th></th>
+                                <th class="mx-col"><span class="mx-colwrap"><i class="fas fa-square"></i><span data-i18n="channelBadge"></span></span></th>
+                                <th class="mx-col"><span class="mx-colwrap"><i class="fas fa-bell"></i><span data-i18n="channelNotify"></span></span></th>
+                            </tr>
+                            <tr class="mx-row">
+                                <td>
+                                    <div class="mx-name">
+                                        <span class="mx-glyph src-medal"><i class="fas fa-medal"></i></span>
+                                        <span class="mx-text">
+                                            <span class="mx-line">
+                                                <span data-i18n="sourceMedal"></span>
+                                                <span class="mx-n" id="count-medal"></span>
+                                            </span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td><div class="mx-cell"><button class="cbox" id="chk-badge-medal" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
+                                <td><div class="mx-cell"><button class="cbox warm" id="chk-notify-medal" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
+                            </tr>
+                            <tr class="mx-row">
+                                <td>
+                                    <div class="mx-name">
+                                        <span class="mx-glyph src-custom"><i class="fas fa-plus-circle"></i></span>
+                                        <span class="mx-text">
+                                            <span class="mx-line">
+                                                <span data-i18n="sourceCustom"></span>
+                                                <span class="mx-n" id="count-custom"></span>
+                                            </span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td><div class="mx-cell"><button class="cbox" id="chk-badge-custom" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
+                                <td><div class="mx-cell"><button class="cbox warm" id="chk-notify-custom" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
+                            </tr>
+                            <tr class="mx-row">
+                                <td>
+                                    <div class="mx-name">
+                                        <span class="mx-glyph src-fav"><i class="fas fa-heart"></i></span>
+                                        <span class="mx-text">
+                                            <span class="mx-line">
+                                                <span data-i18n="sourceFav"></span>
+                                                <span class="mx-n" id="count-fav"></span>
+                                            </span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td><div class="mx-cell"><button class="cbox" id="chk-badge-fav" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
+                                <td><div class="mx-cell"><button class="cbox warm" id="chk-notify-fav" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
+                            </tr>
+                            <tr class="mx-row">
+                                <td>
+                                    <div class="mx-name">
+                                        <span class="mx-glyph src-like"><i class="fas fa-star"></i></span>
+                                        <span class="mx-text">
+                                            <span class="mx-line">
+                                                <span data-i18n="sourceLike"></span>
+                                                <span class="mx-n" id="count-like"></span>
+                                            </span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td><div class="mx-cell"><button class="cbox" id="chk-badge-like" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
+                                <td><div class="mx-cell"><button class="cbox warm" id="chk-notify-like" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
+                            </tr>
+                            <tr class="mx-row">
+                                <td>
+                                    <div class="mx-name">
+                                        <span class="mx-glyph src-rest"><i class="fas fa-users"></i></span>
+                                        <span class="mx-text">
+                                            <span class="mx-line">
+                                                <span data-i18n="sourceRest"></span>
+                                                <span class="mx-n" id="count-rest"></span>
+                                            </span>
+                                    <span class="mx-sub" data-i18n="sourceRestHint"></span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td><div class="mx-cell"><button class="cbox" id="chk-badge-rest" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
+                                <td><div class="mx-cell"><button class="cbox warm" id="chk-notify-rest" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
+                            </tr>
+                        </table>
+
+                        <div class="mx-foot">
+                            <span class="tally" id="scope-tally-badge"></span>
+                            <span class="tally warm" id="scope-tally-notify"></span>
+                            <span class="tally cost" id="scope-cost"></span>
+                        </div>
+
+                        <div class="hint" id="scope-union-hint"></div>
+                        <div class="hint" data-i18n="sourceExclusiveHint"></div>
+                        <div class="hint" data-i18n="scopeSeedHint"></div>
+                    </div>
+
+                    <div class="spacer"></div>
+
                     <div class="section-title">
                         <div class="icon-box"><i class="fas fa-sliders-h"></i></div>
                         <span data-i18n="general"></span>
                     </div>
 
                     <div class="setting-group">
-                        <!-- Monitor mode switch -->
-                        <div class="setting-item">
-                            <label data-i18n="monitorMode"></label>
-                            <div class="radio-group">
-                                <label class="radio-option">
-                                    <input type="radio" name="monitor-mode" value="following">
-                                    <span data-i18n="modeFollowing"></span>
-                                </label>
-                                <label class="radio-option">
-                                    <input type="radio" name="monitor-mode" value="medal">
-                                    <span data-i18n="modeMedal"></span>
-                                </label>
-                            </div>
-                        </div>
-
                         <div class="setting-item">
                             <label data-i18n="refreshInterval"></label>
                             <input type="number" id="input-interval" min="30" value="60" class="styled-input">
-                        </div>
-
-                        <div class="setting-item">
-                            <label data-i18n="badgeNotifications"></label>
-                            <div class="select-wrapper">
-                                <select id="select-notification">
-                                    <option value="2" data-i18n="notifyAllLive"></option>
-                                    <option value="4" data-i18n="notifyPrefMedalOnly"></option>
-                                    <option value="3" data-i18n="notifyFavoritesLikes"></option>
-                                    <option value="1" data-i18n="notifyFavoritesOnly"></option>
-                                    <option value="0" data-i18n="notifyOff"></option>
-                                </select>
-                                <i class="fas fa-chevron-down"></i>
-                            </div>
-                        </div>
-
-                        <div class="setting-item">
-                            <label data-i18n="browserNotify"></label>
-                            <div class="select-wrapper">
-                                <select id="select-browser-notify">
-                                    <option value="2" data-i18n="notifyAllLive"></option>
-                                    <option value="4" data-i18n="notifyPrefMedalOnly"></option>
-                                    <option value="3" data-i18n="notifyFavoritesLikes"></option>
-                                    <option value="1" data-i18n="notifyFavoritesOnly"></option>
-                                    <option value="0" data-i18n="notifyOff"></option>
-                                </select>
-                                <i class="fas fa-chevron-down"></i>
-                            </div>
                         </div>
 
                         <div class="setting-item">

@@ -7,41 +7,88 @@ export const MIN_REFRESH_INTERVAL = 30;       // seconds
 export const BATCH_UID_LIMIT = 200;
 export const MAX_FOLLOW_PAGES = 20;
 export const NOTIF_ID_PREFIX = 'live-';
+export const NOTIF_OVERFLOW_ID = 'live-overflow';
 export const BACKOFF_BASE_MS = 5 * 60 * 1000; // risk-control backoff base (exponential)
 export const BACKOFF_MAX_MS = 30 * 60 * 1000;
 
-export const MonitorMode = Object.freeze({
-    FOLLOWING: 'following',
-    MEDAL: 'medal'
+// Badge text caps here; anything above renders as '99+'. Chrome only fits a few
+// glyphs anyway, and an exact count past this point carries no information.
+export const BADGE_MAX = 99;
+// Desktop notifications sent individually per cycle; the rest collapse into one.
+export const NOTIF_BATCH_LIMIT = 5;
+// Past this age the cached following snapshot's live flags are too stale to
+// paint at all; the popup shows a loading state instead of yesterday's news.
+export const SNAPSHOT_MAX_AGE_MS = 10 * 60 * 1000;
+// Rough cost of one following page walk, for the settings request-count readout.
+export const FOLLOW_PAGE_ESTIMATE = 5;
+
+// Alert sources. Every streamer falls into exactly one bucket (see
+// shared/scope.js sourceOf), so per-source counts can simply be summed.
+export const AlertSource = Object.freeze({
+    MEDAL: 'medal',    // on the user's medal wall
+    CUSTOM: 'custom',  // manually added room, not on the medal wall
+    FAV: 'fav',        // marked 'favorite', none of the above
+    LIKE: 'like',      // marked 'like', none of the above
+    REST: 'rest'       // every other followed streamer
 });
 
-// Notification preference codes, shared by the badge counter
-// (notificationPreference) and browser notifications
-// (browserNotificationPreference). Semantics per background.js:
-// '0' = off, '1' = favorites only, '2' = all, '3' = liked + favorites,
-// '4' = medal wall members (plus custom rooms).
-export const NotifyPref = Object.freeze({
-    OFF: '0',                  // disabled
-    FAVORITES: '1',            // only streamers marked 'favorite'
-    ALL: '2',                  // all streamers
-    LIKED_AND_FAVORITES: '3',  // streamers marked 'favorite' or 'like'
-    MEDAL_ONLY: '4'            // medal wall members (plus custom rooms)
+export const ALERT_SOURCES = Object.freeze(Object.values(AlertSource));
+
+// The two ways the extension can interrupt you. They subscribe to sources
+// independently: a desktop notification covers what you are doing, a badge
+// just sits in the toolbar, so they deserve different thresholds.
+export const AlertChannel = Object.freeze({
+    BADGE: 'badge',
+    NOTIFY: 'notify'
 });
+
+export const ALERT_CHANNELS = Object.freeze(Object.values(AlertChannel));
+
+// Popup display modes (persisted as viewMode).
+export const ViewMode = Object.freeze({
+    ALERT: 'alert',   // union of both channels' subscribed sources (default)
+    MEDAL: 'medal',
+    MARK: 'mark',     // marked 'favorite' or 'like'
+    ALL: 'all'        // everything fetched; needs following data
+});
+
+/** Build an alertScope channel entry. */
+function sourceSet({ medal = false, custom = false, fav = false, like = false, rest = false } = {}) {
+    return { medal, custom, fav, like, rest };
+}
+
+// Default: medal wall + manually added rooms + anything marked. Deliberately
+// excludes 'rest' — pulling every followed streamer into the badge is the
+// v3.0 regression this model exists to undo.
+export const DEFAULT_ALERT_SCOPE = Object.freeze({
+    badge: sourceSet({ medal: true, custom: true, fav: true, like: true }),
+    notify: sourceSet({ medal: true, custom: true, fav: true, like: true })
+});
+
+export { sourceSet };
 
 // Full chrome.storage.local key set with defaults.
-// Pref defaults verified against popup.js:24-29,85-89 and background.js:123,274.
 // Note: mutable defaults (arrays/objects) must be cloned by consumers.
 export const STORAGE_DEFAULTS = Object.freeze({
-    schemaVersion: 2,
-    monitorMode: MonitorMode.MEDAL,
+    schemaVersion: 3,
     streamingInfo: [],
     customStreamers: [],
     streamerStates: {},
     deletedStreamers: [],
     previousLiveUids: [],
     newlyStreaming: [],
-    notificationPreference: NotifyPref.ALL,              // default '2'
-    browserNotificationPreference: NotifyPref.FAVORITES, // default '1'
+    // Who the previous cycle could actually see. A uid entering the fetch set
+    // for the first time (newly marked, custom room just added) must not be
+    // diffed as "just started" — it was simply invisible before.
+    previousCoverage: { uids: [], following: false },
+    alertScope: DEFAULT_ALERT_SCOPE,
+    viewMode: ViewMode.ALERT,
+    // Stable string describing the currently subscribed source set. A mismatch
+    // means "seed silently this cycle" (first install, sources changed, or a
+    // risk-control backoff that cleared it). See shared/scope.js scopeSignature.
+    seedSignature: '',
+    // On-demand following snapshot for the 'all' view. Never feeds the diff.
+    followingCache: { fetchedAt: 0, list: [] },
     refreshInterval: DEFAULT_REFRESH_INTERVAL,
     previewMode: 'thumbnail',
     previewSound: false,

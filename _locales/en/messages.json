@@ -1,298 +1,424 @@
 {
-    "extName": {
-        "message": "BiliStreamMonitor",
-        "description": "Extension name, used as the popup document title."
-    },
-    "syncing": {
-        "message": "Syncing...",
-        "description": "Loading indicator shown in the card grid while state loads."
-    },
-    "loading": {
-        "message": "Loading...",
-        "description": "Placeholder title of the hover preview before room info arrives."
-    },
-    "settingsTitle": {
-        "message": "Settings",
-        "description": "Settings panel header and settings button tooltip."
-    },
-    "appearance": {
-        "message": "Appearance",
-        "description": "Appearance accordion header in settings."
-    },
-    "theme": {
-        "message": "Theme",
-        "description": "Theme selector label."
-    },
-    "themeLight": {
-        "message": "Light",
-        "description": "Light theme option."
-    },
-    "themeDark": {
-        "message": "Dark",
-        "description": "Dark theme option."
-    },
-    "windowWidth": {
-        "message": "Window Width",
-        "description": "Appearance slider label."
-    },
-    "windowHeight": {
-        "message": "Window Height",
-        "description": "Appearance slider label."
-    },
-    "avatarSize": {
-        "message": "Avatar Size",
-        "description": "Appearance slider label."
-    },
-    "columnGapX": {
-        "message": "Column Gap (X)",
-        "description": "Appearance slider label for the horizontal grid gap."
-    },
-    "rowGapY": {
-        "message": "Row Gap (Y)",
-        "description": "Appearance slider label for the vertical grid gap."
-    },
-    "cardPaddingX": {
-        "message": "Card Padding X",
-        "description": "Appearance slider label for horizontal card padding."
-    },
-    "cardPaddingY": {
-        "message": "Card Padding Y",
-        "description": "Appearance slider label for vertical card padding."
-    },
-    "textSize": {
-        "message": "Text Size",
-        "description": "Appearance slider label for the base font size."
-    },
-    "cardBackground": {
-        "message": "Card Background",
-        "description": "Toggle label for showing the streamer card background."
-    },
-    "resetToDefaults": {
-        "message": "Reset to Defaults",
-        "description": "Button that resets all appearance settings."
-    },
-    "general": {
-        "message": "General",
-        "description": "General settings section title."
-    },
-    "monitorMode": {
-        "message": "Monitor Mode",
-        "description": "Label of the monitor mode radio group."
-    },
-    "modeFollowing": {
-        "message": "All Following",
-        "description": "Monitor mode option: watch every followed streamer (default)."
-    },
-    "modeMedal": {
-        "message": "Medal Wall",
-        "description": "Monitor mode option: watch only streamers on the medal wall."
-    },
-    "modeSwitchToFollowing": {
-        "message": "Switch to All Following mode",
-        "description": "Tooltip of the floating mode-switch button while the medal wall mode is active."
-    },
-    "modeSwitchToMedal": {
-        "message": "Switch to Medal Wall mode",
-        "description": "Tooltip of the floating mode-switch button while the following mode is active."
-    },
-    "refreshInterval": {
-        "message": "Refresh Interval (s)",
-        "description": "Label of the refresh interval input, in seconds."
-    },
-    "badgeNotifications": {
-        "message": "Badge Notifications",
-        "description": "Label of the badge counter preference selector."
-    },
-    "browserNotify": {
-        "message": "Browser Notify",
-        "description": "Label of the browser notification preference selector."
-    },
-    "notifyAllLive": {
-        "message": "All Live",
-        "description": "Notification preference option: every live streamer."
-    },
-    "notifyFavoritesLikes": {
-        "message": "Favorites & Likes",
-        "description": "Notification preference option: streamers marked favorite or like."
-    },
-    "notifyFavoritesOnly": {
-        "message": "Favorites Only",
-        "description": "Notification preference option: only streamers marked favorite."
-    },
-    "notifyPrefMedalOnly": {
-        "message": "Medal wall only",
-        "description": "Notification preference option: only medal wall members (custom rooms always included)."
-    },
-    "notifyOff": {
-        "message": "Off",
-        "description": "Notification preference option: disabled."
-    },
-    "previewMode": {
-        "message": "Preview Mode",
-        "description": "Label of the hover preview mode selector."
-    },
-    "previewThumbnail": {
-        "message": "Thumbnail",
-        "description": "Preview mode option: show the stream cover thumbnail."
-    },
-    "previewLive": {
-        "message": "Live Player",
-        "description": "Preview mode option: embed the live player."
-    },
-    "previewSound": {
-        "message": "Preview Sound",
-        "description": "Toggle label for enabling sound in the live preview."
-    },
-    "volume": {
-        "message": "Volume",
-        "description": "Preview volume slider label."
-    },
-    "customRooms": {
-        "message": "Custom Rooms",
-        "description": "Custom rooms accordion header in settings."
-    },
-    "addRoom": {
-        "message": "Add Room",
-        "description": "Label and tooltip of the add-room button in the custom rooms accordion."
-    },
-    "addRoomPlaceholder": {
-        "message": "Room URL or ID, e.g. 12345",
-        "description": "Placeholder of the add-room input in the custom rooms accordion."
-    },
-    "refreshData": {
-        "message": "Refresh Data",
-        "description": "Manual refresh button label and tooltip."
-    },
-    "refreshing": {
-        "message": "Refreshing...",
-        "description": "Manual refresh button label while a refresh is running."
-    },
-    "hiddenList": {
-        "message": "Hidden List",
-        "description": "Button opening the hidden streamers panel."
-    },
-    "hiddenStreamers": {
-        "message": "Hidden Streamers",
-        "description": "Hidden streamers panel header."
-    },
-    "exportSettings": {
-        "message": "Export",
-        "description": "Tooltip of the export settings button."
-    },
-    "importSettings": {
-        "message": "Import",
-        "description": "Tooltip of the import settings button."
-    },
-    "favorite": {
-        "message": "Favorite",
-        "description": "Context menu action: mark the streamer as favorite."
-    },
-    "like": {
-        "message": "Like",
-        "description": "Context menu action: mark the streamer as liked."
-    },
-    "hide": {
-        "message": "Hide",
-        "description": "Context menu action: hide the streamer from the grid."
-    },
-    "remove": {
-        "message": "Remove",
-        "description": "Tooltip of the custom room remove button."
-    },
-    "dismiss": {
-        "message": "Dismiss",
-        "description": "Tooltip of the error banner close button."
-    },
-    "noStreamers": {
-        "message": "No streamers found.",
-        "description": "Empty state of the card grid."
-    },
-    "listEmpty": {
-        "message": "List is empty",
-        "description": "Empty state of the hidden streamers list."
-    },
-    "unknown": {
-        "message": "Unknown",
-        "description": "Fallback streamer name in the hidden list when info is missing."
-    },
-    "previewError": {
-        "message": "Failed to load preview.",
-        "description": "Placeholder shown in the hover preview when the room info request fails."
-    },
-    "errorAuth": {
-        "message": "Bilibili login expired. Please log in to bilibili.com again — monitoring is paused.",
-        "description": "Error banner text for an expired bilibili session."
-    },
-    "errorRisk": {
-        "message": "Temporarily rate-limited by bilibili. Monitoring will resume automatically.",
-        "description": "Error banner text for bilibili risk-control rate limiting."
-    },
-    "errorNetwork": {
-        "message": "Network error. Monitoring will retry automatically.",
-        "description": "Error banner text for generic network failures."
-    },
-    "liveFor": {
-        "message": "Live for: $1h $2m",
-        "description": "Elapsed live time in the hover preview. $1 = hours, $2 = minutes.",
-        "placeholders": {
-            "hours": { "content": "$1", "example": "2" },
-            "minutes": { "content": "$2", "example": "35" }
-        }
-    },
-    "medalLevel": {
-        "message": "$1 · Lv.$2",
-        "description": "Medal caption on a streamer card. $1 = medal name, $2 = medal level.",
-        "placeholders": {
-            "medal": { "content": "$1", "example": "FanClub" },
-            "level": { "content": "$2", "example": "21" }
-        }
-    },
-    "addRoomInvalid": {
-        "message": "Invalid room URL or ID",
-        "description": "Add-room status when the input cannot be parsed."
-    },
-    "addRoomDuplicateCustom": {
-        "message": "Room already in custom list",
-        "description": "Add-room status when the room is already a custom entry."
-    },
-    "addRoomDuplicateMain": {
-        "message": "Already in your streamer list",
-        "description": "Add-room status when the streamer is already covered by the monitor mode list."
-    },
-    "addRoomFetching": {
-        "message": "Fetching room info...",
-        "description": "Add-room status while the room info request is in flight."
-    },
-    "addedRoom": {
-        "message": "Added: $1",
-        "description": "Add-room success status. $1 = streamer name.",
-        "placeholders": {
-            "name": { "content": "$1", "example": "Alice" }
-        }
-    },
-    "addRoomError": {
-        "message": "Error: $1",
-        "description": "Add-room failure status. $1 = error message.",
-        "placeholders": {
-            "message": { "content": "$1", "example": "Room not found" }
-        }
-    },
-    "roomFallbackName": {
-        "message": "Room $1",
-        "description": "Fallback display name for a room whose master info is unavailable. $1 = room id.",
-        "placeholders": {
-            "id": { "content": "$1", "example": "12345" }
-        }
-    },
-    "importInvalid": {
-        "message": "Invalid config file",
-        "description": "Alert shown when a settings import fails."
-    },
-    "notificationTitle": {
-        "message": "$1 is now live!",
-        "description": "Browser notification title when a streamer goes live. $1 = streamer name.",
-        "placeholders": {
-            "name": { "content": "$1", "example": "Alice" }
-        }
+  "extName": {
+    "message": "BiliStreamMonitor",
+    "description": "Extension name, used as the popup document title."
+  },
+  "syncing": {
+    "message": "Syncing...",
+    "description": "Loading indicator shown in the card grid while state loads."
+  },
+  "loading": {
+    "message": "Loading...",
+    "description": "Placeholder title of the hover preview before room info arrives."
+  },
+  "settingsTitle": {
+    "message": "Settings",
+    "description": "Settings panel header and settings button tooltip."
+  },
+  "appearance": {
+    "message": "Appearance",
+    "description": "Appearance accordion header in settings."
+  },
+  "theme": {
+    "message": "Theme",
+    "description": "Theme selector label."
+  },
+  "themeLight": {
+    "message": "Light",
+    "description": "Light theme option."
+  },
+  "themeDark": {
+    "message": "Dark",
+    "description": "Dark theme option."
+  },
+  "windowWidth": {
+    "message": "Window Width",
+    "description": "Appearance slider label."
+  },
+  "windowHeight": {
+    "message": "Window Height",
+    "description": "Appearance slider label."
+  },
+  "avatarSize": {
+    "message": "Avatar Size",
+    "description": "Appearance slider label."
+  },
+  "columnGapX": {
+    "message": "Column Gap (X)",
+    "description": "Appearance slider label for the horizontal grid gap."
+  },
+  "rowGapY": {
+    "message": "Row Gap (Y)",
+    "description": "Appearance slider label for the vertical grid gap."
+  },
+  "cardPaddingX": {
+    "message": "Card Padding X",
+    "description": "Appearance slider label for horizontal card padding."
+  },
+  "cardPaddingY": {
+    "message": "Card Padding Y",
+    "description": "Appearance slider label for vertical card padding."
+  },
+  "textSize": {
+    "message": "Text Size",
+    "description": "Appearance slider label for the base font size."
+  },
+  "cardBackground": {
+    "message": "Card Background",
+    "description": "Toggle label for showing the streamer card background."
+  },
+  "resetToDefaults": {
+    "message": "Reset to Defaults",
+    "description": "Button that resets all appearance settings."
+  },
+  "general": {
+    "message": "General",
+    "description": "General settings section title."
+  },
+  "refreshInterval": {
+    "message": "Refresh Interval (s)",
+    "description": "Label of the refresh interval input, in seconds."
+  },
+  "previewMode": {
+    "message": "Preview Mode",
+    "description": "Label of the hover preview mode selector."
+  },
+  "previewThumbnail": {
+    "message": "Thumbnail",
+    "description": "Preview mode option: show the stream cover thumbnail."
+  },
+  "previewLive": {
+    "message": "Live Player",
+    "description": "Preview mode option: embed the live player."
+  },
+  "previewSound": {
+    "message": "Preview Sound",
+    "description": "Toggle label for enabling sound in the live preview."
+  },
+  "volume": {
+    "message": "Volume",
+    "description": "Preview volume slider label."
+  },
+  "customRooms": {
+    "message": "Custom Rooms",
+    "description": "Custom rooms accordion header in settings."
+  },
+  "addRoom": {
+    "message": "Add Room",
+    "description": "Label and tooltip of the add-room button in the custom rooms accordion."
+  },
+  "addRoomPlaceholder": {
+    "message": "Room URL or ID, e.g. 12345",
+    "description": "Placeholder of the add-room input in the custom rooms accordion."
+  },
+  "refreshData": {
+    "message": "Refresh Data",
+    "description": "Manual refresh button label and tooltip."
+  },
+  "refreshing": {
+    "message": "Refreshing...",
+    "description": "Manual refresh button label while a refresh is running."
+  },
+  "hiddenList": {
+    "message": "Hidden List",
+    "description": "Button opening the hidden streamers panel."
+  },
+  "hiddenStreamers": {
+    "message": "Hidden Streamers",
+    "description": "Hidden streamers panel header."
+  },
+  "exportSettings": {
+    "message": "Export",
+    "description": "Tooltip of the export settings button."
+  },
+  "importSettings": {
+    "message": "Import",
+    "description": "Tooltip of the import settings button."
+  },
+  "favorite": {
+    "message": "Favorite",
+    "description": "Context menu action: mark the streamer as favorite."
+  },
+  "like": {
+    "message": "Like",
+    "description": "Context menu action: mark the streamer as liked."
+  },
+  "hide": {
+    "message": "Hide",
+    "description": "Context menu action: hide the streamer from the grid."
+  },
+  "remove": {
+    "message": "Remove",
+    "description": "Tooltip of the custom room remove button."
+  },
+  "dismiss": {
+    "message": "Dismiss",
+    "description": "Tooltip of the error banner close button."
+  },
+  "noStreamers": {
+    "message": "No streamers found.",
+    "description": "Empty state of the card grid."
+  },
+  "listEmpty": {
+    "message": "List is empty",
+    "description": "Empty state of the hidden streamers list."
+  },
+  "unknown": {
+    "message": "Unknown",
+    "description": "Fallback streamer name in the hidden list when info is missing."
+  },
+  "previewError": {
+    "message": "Failed to load preview.",
+    "description": "Placeholder shown in the hover preview when the room info request fails."
+  },
+  "errorAuth": {
+    "message": "Bilibili login expired. Please log in to bilibili.com again — monitoring is paused.",
+    "description": "Error banner text for an expired bilibili session."
+  },
+  "errorRisk": {
+    "message": "Temporarily rate-limited by bilibili. Monitoring will resume automatically.",
+    "description": "Error banner text for bilibili risk-control rate limiting."
+  },
+  "errorNetwork": {
+    "message": "Network error. Monitoring will retry automatically.",
+    "description": "Error banner text for generic network failures."
+  },
+  "liveFor": {
+    "message": "Live for: $1h $2m",
+    "description": "Elapsed live time in the hover preview. $1 = hours, $2 = minutes.",
+    "placeholders": {
+      "hours": {
+        "content": "$1",
+        "example": "2"
+      },
+      "minutes": {
+        "content": "$2",
+        "example": "35"
+      }
     }
+  },
+  "medalLevel": {
+    "message": "$1 · Lv.$2",
+    "description": "Medal caption on a streamer card. $1 = medal name, $2 = medal level.",
+    "placeholders": {
+      "medal": {
+        "content": "$1",
+        "example": "FanClub"
+      },
+      "level": {
+        "content": "$2",
+        "example": "21"
+      }
+    }
+  },
+  "addRoomInvalid": {
+    "message": "Invalid room URL or ID",
+    "description": "Add-room status when the input cannot be parsed."
+  },
+  "addRoomDuplicateCustom": {
+    "message": "Room already in custom list",
+    "description": "Add-room status when the room is already a custom entry."
+  },
+  "addRoomDuplicateMain": {
+    "message": "Already in your streamer list",
+    "description": "Add-room status when the streamer is already covered by the monitor mode list."
+  },
+  "addRoomFetching": {
+    "message": "Fetching room info...",
+    "description": "Add-room status while the room info request is in flight."
+  },
+  "addedRoom": {
+    "message": "Added: $1",
+    "description": "Add-room success status. $1 = streamer name.",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "Alice"
+      }
+    }
+  },
+  "addRoomError": {
+    "message": "Error: $1",
+    "description": "Add-room failure status. $1 = error message.",
+    "placeholders": {
+      "message": {
+        "content": "$1",
+        "example": "Room not found"
+      }
+    }
+  },
+  "roomFallbackName": {
+    "message": "Room $1",
+    "description": "Fallback display name for a room whose master info is unavailable. $1 = room id.",
+    "placeholders": {
+      "id": {
+        "content": "$1",
+        "example": "12345"
+      }
+    }
+  },
+  "importInvalid": {
+    "message": "Invalid config file",
+    "description": "Alert shown when a settings import fails."
+  },
+  "notificationTitle": {
+    "message": "$1 is now live!",
+    "description": "Browser notification title when a streamer goes live. $1 = streamer name.",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "Alice"
+      }
+    }
+  },
+  "alertScope": {
+    "message": "Alert Scope",
+    "description": "Settings section title for the alert-source matrix."
+  },
+  "channelBadge": {
+    "message": "Badge",
+    "description": "Matrix column header: the toolbar badge counter."
+  },
+  "channelNotify": {
+    "message": "Notify",
+    "description": "Matrix column header: desktop notifications."
+  },
+  "sourceMedal": {
+    "message": "Medal wall",
+    "description": "Alert source row: streamers on the user's medal wall."
+  },
+  "sourceCustom": {
+    "message": "Custom rooms",
+    "description": "Alert source row: manually added rooms."
+  },
+  "sourceFav": {
+    "message": "Favorites",
+    "description": "Alert source row: streamers marked 'favorite'."
+  },
+  "sourceLike": {
+    "message": "Liked",
+    "description": "Alert source row: streamers marked 'like'."
+  },
+  "sourceRest": {
+    "message": "Other following",
+    "description": "Alert source row: every other followed streamer."
+  },
+  "sourceRestHint": {
+    "message": "Needs following pagination — about 5 more requests per cycle.",
+    "description": "Cost warning under the 'other following' row."
+  },
+  "sourceExclusiveHint": {
+    "message": "Each streamer counts in one row only; the first matching row wins.",
+    "description": "Explains that the source buckets are mutually exclusive."
+  },
+  "scopeTallyBadge": {
+    "message": "Badge $1",
+    "description": "Badge tally pill. $1 = number of streamers in scope.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "46"
+      }
+    }
+  },
+  "scopeTallyBadgeOff": {
+    "message": "Badge off",
+    "description": "Badge tally pill when no source is checked."
+  },
+  "scopeTallyNotify": {
+    "message": "Notify $1",
+    "description": "Notify tally pill. $1 = number of streamers in scope.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "25"
+      }
+    }
+  },
+  "scopeTallyNotifyOff": {
+    "message": "Notify off",
+    "description": "Notify tally pill when no source is checked."
+  },
+  "scopeCost": {
+    "message": "$1 requests per cycle",
+    "description": "Request-cost readout. $1 = requests per refresh cycle.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "scopeCostApprox": {
+    "message": "About $1 requests per cycle",
+    "description": "Request-cost readout when following pagination is on. $1 = approximate requests.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "7"
+      }
+    }
+  },
+  "scopeUnionHint": {
+    "message": "The Alert scope view shows the union of both columns — $1 right now.",
+    "description": "Explains that the Alert scope view is the union of both columns. $1 = count.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "46"
+      }
+    }
+  },
+  "scopeSeedHint": {
+    "message": "The first cycle after install, after changing these sources, and after a rate-limit pause only syncs state — no alerts are sent.",
+    "description": "Explains the silent seeding rule."
+  },
+  "viewAlert": {
+    "message": "Alert scope",
+    "description": "Display mode: the alert scope."
+  },
+  "viewMedal": {
+    "message": "Medal wall",
+    "description": "Display mode: medal wall only."
+  },
+  "viewMark": {
+    "message": "Marked",
+    "description": "Display mode: marked streamers only."
+  },
+  "viewAll": {
+    "message": "All live",
+    "description": "Display mode: everything currently known."
+  },
+  "viewTooltip": {
+    "message": "$1 · $2 live",
+    "description": "Display-mode button tooltip. $1 = mode name, $2 = live count.",
+    "placeholders": {
+      "mode": {
+        "content": "$1",
+        "example": "Medal wall"
+      },
+      "count": {
+        "content": "$2",
+        "example": "14"
+      }
+    }
+  },
+  "noStreamersInView": {
+    "message": "Nobody in this view right now.",
+    "description": "Empty state when the chosen display mode has no streamers."
+  },
+  "loadingFollowing": {
+    "message": "Loading followed streamers…",
+    "description": "Shown while the on-demand following snapshot loads."
+  },
+  "notificationMore": {
+    "message": "$1 more streamers went live",
+    "description": "Collapsed notification for streamers past the per-cycle cap. $1 = how many more.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  }
 }

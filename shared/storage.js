@@ -1,22 +1,23 @@
-// Shared module: chrome.storage.local state access, schema v2 migration, config import/export.
+// Shared module: chrome.storage.local state access, schema v3 migration, config import/export.
 
 import {
     STORAGE_DEFAULTS,
     MIN_REFRESH_INTERVAL,
-    MonitorMode,
-    NotifyPref
+    ViewMode,
+    sourceSet
 } from './constants.js';
+import { normalizeAlertScope } from './scope.js';
 
-export const STORAGE_VERSION = 2;
+export const STORAGE_VERSION = 3;
 
-// Settings-type keys allowed in config import/export.
+// Settings-type keys allowed in config import/export. Runtime state
+// (seedSignature, followingCache, previousLiveUids, ...) is deliberately absent.
 const SETTINGS_KEYS = Object.freeze([
-    'monitorMode',
     'customStreamers',
     'streamerStates',
     'deletedStreamers',
-    'notificationPreference',
-    'browserNotificationPreference',
+    'alertScope',
+    'viewMode',
     'refreshInterval',
     'previewMode',
     'previewSound',
@@ -24,10 +25,24 @@ const SETTINGS_KEYS = Object.freeze([
     'appearance'
 ]);
 
+// Legacy notification preference codes -> alert source sets (schema v2 -> v3).
+// '2' (ALL) deliberately does NOT map to every source: in the medal-wall era it
+// meant "everyone I monitor" (~90 people), and only drifted into "all 1769
+// follows" when v3.0 widened the population. Mapping it to the new default is
+// the faithful reading of the original intent, and is the behaviour change this
+// release exists to make. Called out in CHANGELOG 4.0.0.
+const PREF_TO_SOURCES = Object.freeze({
+    '0': {},
+    '1': { fav: true },
+    '2': { medal: true, custom: true, fav: true, like: true },
+    '3': { fav: true, like: true },
+    '4': { medal: true, custom: true }
+});
+
 /** Clone a mutable default so callers never share the frozen reference. */
 function cloneDefault(value) {
     if (Array.isArray(value)) return value.slice();
-    if (value !== null && typeof value === 'object') return { ...value };
+    if (value !== null && typeof value === 'object') return structuredClone(value);
     return value;
 }
 
@@ -55,13 +70,15 @@ export async function setState(obj) {
 }
 
 /**
- * Schema v2 migration, idempotent. Converges the legacy migrations previously
- * spread across background.js and popup.js:
- * - browserNotificationsEnabled (bool) -> browserNotificationPreference ('0'-'3')
- * - appearance.cardPadding -> cardPaddingY, cardPaddingH -> cardPaddingX
- * - deletedStreamers normalized to a Number array
- * - refreshInterval clamped to >= MIN_REFRESH_INTERVAL
- * - dead key openTabsOnNotificationClick removed
+ * Schema migration to v3, idempotent. Runs the v2 fixups first so a v1 install
+ * converges in one pass.
+ *
+ * v1 -> v2: browserNotificationsEnabled (bool) -> a preference code,
+ *   appearance key renames, deletedStreamers -> Number[], refreshInterval clamp.
+ * v2 -> v3: the two preference codes become alertScope {badge, notify} x sources;
+ *   monitorMode is dropped (the fetch plan is derived from alertScope now);
+ *   seedSignature is cleared so the first cycle after upgrading seeds silently
+ *   instead of reporting every live streamer as newly live.
  * @returns {Promise<boolean>} true if a migration ran
  */
 export async function migrateIfNeeded() {
@@ -71,18 +88,9 @@ export async function migrateIfNeeded() {
     }
 
     const updates = {};
-    const removals = [];
 
-    // Legacy boolean -> preference code (was background.js:127-132 / popup.js:92-98)
-    if (data.browserNotificationPreference === undefined) {
-        const enabled = data.browserNotificationsEnabled !== false;
-        updates.browserNotificationPreference = enabled
-            ? (data.notificationPreference || NotifyPref.FAVORITES)
-            : NotifyPref.OFF;
-    }
-    removals.push('browserNotificationsEnabled');
+    // --- v1 -> v2 fixups ---
 
-    // Appearance key renames (was popup.js:103-111)
     if (data.appearance && typeof data.appearance === 'object' && !Array.isArray(data.appearance)) {
         const appearance = { ...data.appearance };
         let changed = false;
@@ -99,23 +107,51 @@ export async function migrateIfNeeded() {
         if (changed) updates.appearance = appearance;
     }
 
-    // deletedStreamers -> Number array
     if (Array.isArray(data.deletedStreamers)) {
         updates.deletedStreamers = data.deletedStreamers.map(Number).filter(Number.isFinite);
     }
 
-    // refreshInterval lower bound
     if (typeof data.refreshInterval === 'number' && data.refreshInterval < MIN_REFRESH_INTERVAL) {
         updates.refreshInterval = MIN_REFRESH_INTERVAL;
     }
 
-    // Dead key from the old notification click mapping
-    removals.push('openTabsOnNotificationClick');
+    // --- v2 -> v3: preference codes -> alertScope ---
 
+    // Only translate when legacy preferences actually exist. A fresh install has
+    // no schemaVersion either, so it reaches this function too — deriving a
+    // scope from absent codes there would quietly override DEFAULT_ALERT_SCOPE.
+    const hasLegacyPrefs = data.notificationPreference !== undefined
+        || data.browserNotificationPreference !== undefined
+        || data.browserNotificationsEnabled !== undefined;
+
+    if (data.alertScope === undefined && hasLegacyPrefs) {
+        // Honour the v1 boolean kill switch and the old defaults
+        // ('2' for the badge, '1' for desktop notifications).
+        const badgeCode = data.notificationPreference ?? '2';
+        let notifyCode = data.browserNotificationPreference;
+        if (notifyCode === undefined) {
+            const enabled = data.browserNotificationsEnabled !== false;
+            notifyCode = enabled ? (data.notificationPreference ?? '1') : '0';
+        }
+        updates.alertScope = {
+            badge: sourceSet(PREF_TO_SOURCES[badgeCode] ?? PREF_TO_SOURCES['2']),
+            notify: sourceSet(PREF_TO_SOURCES[notifyCode] ?? PREF_TO_SOURCES['1'])
+        };
+    }
+
+    // Force a silent seed on the first cycle after upgrading: the scope changed
+    // shape, so the previous diff baseline can no longer be trusted.
+    updates.seedSignature = '';
     updates.schemaVersion = STORAGE_VERSION;
 
     await chrome.storage.local.set(updates);
-    if (removals.length > 0) await chrome.storage.local.remove(removals);
+    await chrome.storage.local.remove([
+        'browserNotificationsEnabled',
+        'openTabsOnNotificationClick',
+        'monitorMode',
+        'notificationPreference',
+        'browserNotificationPreference'
+    ]);
     return true;
 }
 
@@ -126,17 +162,17 @@ function isPlainObject(v) {
 /** Validate and normalize one imported value; undefined = rejected. */
 function sanitizeImportValue(key, value) {
     switch (key) {
-        case 'monitorMode':
-            return Object.values(MonitorMode).includes(value) ? value : undefined;
         case 'customStreamers':
             return Array.isArray(value) ? value : undefined;
         case 'streamerStates':
             return isPlainObject(value) ? value : undefined;
         case 'deletedStreamers':
             return Array.isArray(value) ? value.map(Number).filter(Number.isFinite) : undefined;
-        case 'notificationPreference':
-        case 'browserNotificationPreference':
-            return Object.values(NotifyPref).includes(value) ? value : undefined;
+        case 'alertScope':
+            // Coerced to the full shape; unknown keys are dropped.
+            return isPlainObject(value) ? normalizeAlertScope(value) : undefined;
+        case 'viewMode':
+            return Object.values(ViewMode).includes(value) ? value : undefined;
         case 'refreshInterval': {
             const n = Number(value);
             return Number.isFinite(n) ? Math.max(MIN_REFRESH_INTERVAL, n) : undefined;
@@ -158,7 +194,8 @@ function sanitizeImportValue(key, value) {
 
 /**
  * Import a config object: whitelisted settings keys only, per-key type
- * validation, deletedStreamers -> Number, refreshInterval clamped.
+ * validation. Importing an alertScope changes what alerts you, so the seed
+ * signature is cleared alongside it and the next cycle re-seeds silently.
  * @param {Object} jsonObj parsed JSON
  * @returns {Promise<string[]>} keys actually written
  * @throws {Error} if jsonObj is not a plain object
@@ -174,7 +211,10 @@ export async function importConfig(jsonObj) {
         if (value !== undefined) updates[key] = value;
     }
     const written = Object.keys(updates);
-    if (written.length > 0) await chrome.storage.local.set(updates);
+    if (written.length > 0) {
+        if ('alertScope' in updates) updates.seedSignature = '';
+        await chrome.storage.local.set(updates);
+    }
     return written;
 }
 

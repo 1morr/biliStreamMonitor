@@ -209,8 +209,11 @@ body {
    mini button appears, so the settings FAB itself never moves. */
 .fab-container {
     position: fixed; bottom: 20px; right: 20px; z-index: 50;
-    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    display: flex; flex-direction: row; align-items: center; gap: 8px;
 }
+/* Grows leftward from the right-anchored settings button, so the button itself
+   never moves and the cursor stays inside the container while the dial opens. */
+.fab-dial { display: none; flex-direction: row; align-items: center; gap: 8px; }
 .floating-btn {
     width: 44px; height: 44px; border-radius: 50%; background: var(--card-bg); border: none;
     box-shadow: var(--shadow-float); color: var(--text-primary); font-size: 18px;
@@ -220,11 +223,13 @@ body {
 }
 .floating-btn:hover { transform: scale(1.1) rotate(90deg); background: var(--btn-secondary-bg); }
 /* Mode switch: only visible while the FAB cluster is hovered */
-.fab-mini { width: 36px; height: 36px; font-size: 14px; display: none; }
-.fab-container:hover .fab-mini { display: flex; animation: fab-pop 0.15s ease; }
-.fab-mini:hover { transform: scale(1.1); } /* no cog spin on the mode icon */
+.fab-mini { width: 36px; height: 36px; font-size: 14px; }
+.fab-container:hover .fab-dial { display: flex; animation: fab-pop 0.15s ease; }
+.fab-mini:hover { transform: scale(1.1); } /* no cog spin on the mode icons */
+.fab-mini.on { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+.fab-mini.on:hover { background: #0063cc; }
 @keyframes fab-pop {
-    from { opacity: 0; transform: translateY(6px) scale(0.8); }
+    from { opacity: 0; transform: translateX(10px); }
     to { opacity: 1; transform: none; }
 }
 
@@ -314,16 +319,63 @@ body {
 .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .setting-item label { font-size: 13px; color: var(--text-primary); font-weight: 500; }
 
-/* Radio group (monitor mode) */
-.radio-group { display: flex; gap: 10px; margin-top: 8px; }
-.radio-option {
-    flex: 1; display: flex; align-items: center; gap: 6px;
-    padding: 8px 12px; border: 1px solid var(--input-border); border-radius: 8px;
-    background: var(--input-bg); cursor: pointer; font-size: 13px;
-    transition: border-color 0.2s, background 0.2s;
+/* ================= ALERT SCOPE MATRIX ================= */
+/* Sources down, channels across. The exclusive buckets are what let the
+   per-column tallies be plain sums of the row counts. */
+.scope-matrix { width: 100%; border-collapse: collapse; }
+.scope-matrix th, .scope-matrix td { padding: 0; }
+.mx-head th { padding-bottom: 9px; font-size: 11px; font-weight: 600; color: var(--text-secondary); }
+.mx-head th.mx-col { width: 52px; }
+.mx-colwrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.mx-colwrap i { font-size: 12px; }
+.mx-row td { padding: 7px 0; border-top: 1px solid var(--border-color); }
+.mx-row:first-of-type td { border-top: none; }
+.mx-name { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.mx-glyph { width: 17px; display: flex; justify-content: center; flex-shrink: 0; font-size: 13px; }
+.mx-glyph.src-medal { color: #b8860b; }
+.mx-glyph.src-custom { color: var(--accent-blue); }
+.mx-glyph.src-fav { color: var(--accent-red); }
+.mx-glyph.src-like { color: var(--accent-orange); }
+.mx-glyph.src-rest { color: var(--text-secondary); }
+.mx-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.mx-line { display: flex; align-items: center; }
+.mx-sub { font-size: 11px; line-height: 1.35; color: var(--text-secondary); }
+.mx-n { margin-left: 6px; font-size: 11px; font-weight: 600; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.mx-cell { display: flex; justify-content: center; }
+.cbox {
+    width: 21px; height: 21px; border-radius: 6px;
+    border: 1.5px solid var(--input-border); background: var(--input-bg-focus);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 11px; cursor: pointer; padding: 0;
+    transition: background 0.15s, border-color 0.15s;
 }
-.radio-option input { accent-color: var(--accent-blue); margin: 0; }
-.radio-option:has(input:checked) { border-color: var(--accent-blue); background: var(--input-bg-focus); }
+.cbox i { opacity: 0; }
+.cbox:hover { border-color: var(--accent-blue); }
+.cbox.on { background: var(--accent-blue); border-color: var(--accent-blue); }
+.cbox.on.warm { background: var(--bilibili-pink); border-color: var(--bilibili-pink); }
+.cbox.on i { opacity: 1; }
+
+.mx-foot {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+.tally {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
+    background: rgba(0, 122, 255, 0.1); color: var(--accent-blue);
+}
+.tally.warm { background: rgba(251, 114, 153, 0.12); color: #d1436a; }
+.tally.cost { margin-left: auto; background: rgba(52, 199, 89, 0.14); color: #1e7a3c; }
+.tally.cost.heavy { background: rgba(255, 149, 0, 0.16); color: #a35c00; }
+.tally.off { background: rgba(120, 120, 128, 0.14); color: var(--text-secondary); }
+[data-theme="dark"] .tally.warm { color: #ff8fab; }
+[data-theme="dark"] .tally.cost { color: #4cd964; }
+[data-theme="dark"] .tally.cost.heavy { color: #ffb340; }
+
+.hint { font-size: 11px; line-height: 1.45; color: var(--text-secondary); margin-top: 8px; }
+.hint:first-of-type { margin-top: 12px; }
 
 /* Inputs */
 .styled-input { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); font-size: 14px; box-sizing: border-box; transition: border 0.2s; color: var(--text-primary); }

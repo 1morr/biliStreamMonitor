@@ -1,11 +1,12 @@
-// Popup entry point: state loading, global controls (add room, manual
-// refresh, settings FAB + mode speed-dial), error banner, and the
-// background message listener.
+// Popup entry point: state loading, global controls (add room, manual refresh,
+// settings FAB + display-mode dial), error banner, and the background listener.
 
 import { applyI18n, escapeHtml, t } from '../shared/i18n.js';
 import { getState, setState, migrateIfNeeded } from '../shared/storage.js';
 import { fetchRoomInfo, fetchMasterInfo, normalizeImageUrl } from '../shared/api.js';
-import { renderGrid, initContextMenu } from './cards.js';
+import { DEFAULT_ALERT_SCOPE, ViewMode, SNAPSHOT_MAX_AGE_MS } from '../shared/constants.js';
+import { needsFollowing, normalizeAlertScope } from '../shared/scope.js';
+import { renderGrid, renderLoading, initContextMenu, liveCountsByView } from './cards.js';
 import {
     DEFAULT_APPEARANCE,
     applyTheme,
@@ -21,12 +22,12 @@ const State = {
     states: {},
     newlyStreaming: [],
     refreshInterval: 60,
-    notificationPref: '2',
-    browserNotify: '1',
     previewMode: 'thumbnail',
     previewSound: false,
     previewVolume: 50,
-    monitorMode: 'following',
+    viewMode: ViewMode.ALERT,
+    alertScope: structuredClone(DEFAULT_ALERT_SCOPE),
+    followingCache: { fetchedAt: 0, list: [] },
     appearance: { ...DEFAULT_APPEARANCE }
 };
 
@@ -36,6 +37,7 @@ const errorBannerText = document.getElementById('error-banner-text');
 
 // Session-only flag: closing the banner hides it until a new error arrives.
 let bannerDismissed = false;
+let snapshotInFlight = false;
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -44,8 +46,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadData();
     await updateErrorBanner();
     setupControls();
-    initContextMenu(State);
-    setupSettings(State, { onImported: loadData, onModeChanged: updateModeFab });
+    initContextMenu(State, onScopeChanged);
+    setupSettings(State, { onImported: loadData, onScopeChanged });
 
     // Always clear the badge when the popup is opened
     chrome.action.setBadgeText({ text: '' });
@@ -57,11 +59,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // --- Data loading ---
 async function loadData() {
     if (gridContainer.children.length === 0) {
-        gridContainer.innerHTML = `
-            <div class="loading-state">
-                <div class="spinner"></div>
-                <p>${escapeHtml(t('syncing'))}</p>
-            </div>`;
+        renderLoading('syncing');
     }
 
     try {
@@ -73,18 +71,20 @@ async function loadData() {
         State.states = storage.streamerStates;
         State.newlyStreaming = storage.newlyStreaming;
         State.refreshInterval = storage.refreshInterval;
-        State.notificationPref = storage.notificationPreference;
-        State.browserNotify = storage.browserNotificationPreference;
         State.previewMode = storage.previewMode;
         State.previewSound = storage.previewSound;
         State.previewVolume = storage.previewVolume;
-        State.monitorMode = storage.monitorMode;
+        State.viewMode = storage.viewMode;
+        // Normalized on every read: consumers mutate it, and the stored value
+        // may predate a source being added.
+        State.alertScope = normalizeAlertScope(storage.alertScope);
+        State.followingCache = storage.followingCache;
         State.appearance = { ...DEFAULT_APPEARANCE, ...storage.appearance };
 
         applyTheme(State);
         renderGrid(State);
         updateSettingsUI(State);
-        updateModeFab();
+        updateViewDial();
         renderCustomRoomList(State);
     } catch (e) {
         console.error(e);
@@ -92,10 +92,13 @@ async function loadData() {
     }
 }
 
+/** Anything that changes marks or the alert scope moves the 'alert' view too. */
+function onScopeChanged() {
+    renderGrid(State);
+    updateViewDial();
+}
+
 // --- Error banner ---
-// lastError is persisted by the background as 'auth' | 'risk' | 'network'
-// (null on success). The banner mirrors it; nothing listened to the showError
-// broadcast before (audit #1).
 const ERROR_KEY_BY_KIND = {
     auth: 'errorAuth',
     risk: 'errorRisk',
@@ -104,7 +107,6 @@ const ERROR_KEY_BY_KIND = {
 
 function errorKindOf(lastError) {
     if (!lastError) return null;
-    // Tolerate an object shape ({kind}) in addition to the plain string.
     const kind = typeof lastError === 'string' ? lastError : (lastError.kind || lastError.type || '');
     return ERROR_KEY_BY_KIND[kind] ? kind : 'network';
 }
@@ -119,7 +121,6 @@ async function updateErrorBanner() {
     }
 
     errorBannerText.textContent = t(ERROR_KEY_BY_KIND[kind]);
-    // auth / risk: warning red; network: neutral yellow
     const severity = kind === 'network' ? 'severity-medium' : 'severity-high';
     errorBanner.className = `error-banner ${severity}`;
 }
@@ -139,7 +140,10 @@ function setupControls() {
         if (e.key === 'Enter') addRoom();
     });
 
-    document.getElementById('fab-mode').onclick = () => toggleMonitorMode();
+    document.getElementById('fab-dial').addEventListener('click', (e) => {
+        const button = e.target.closest('[data-view]');
+        if (button) setViewMode(button.dataset.view);
+    });
 }
 
 function bindRefreshButton(btn, withText) {
@@ -157,24 +161,61 @@ function bindRefreshButton(btn, withText) {
     };
 }
 
-// --- Mode speed-dial button ---
-// The icon shows the CURRENT mode; the tooltip names the mode a click
-// switches to. The settings-panel radios stay in sync both ways.
-const MODE_FAB_ICON = { following: 'fas fa-users', medal: 'fas fa-medal' };
-const MODE_TOOLTIP_KEY = { following: 'modeSwitchToMedal', medal: 'modeSwitchToFollowing' };
+// --- Display-mode dial ---
+// Icon-only by design; the name and live count live in the native tooltip so
+// the resting popup carries no chrome at all.
+const VIEW_LABEL_KEY = {
+    [ViewMode.ALERT]: 'viewAlert',
+    [ViewMode.MEDAL]: 'viewMedal',
+    [ViewMode.MARK]: 'viewMark',
+    [ViewMode.ALL]: 'viewAll'
+};
 
-function updateModeFab() {
-    const btn = document.getElementById('fab-mode');
-    btn.querySelector('i').className = MODE_FAB_ICON[State.monitorMode] || MODE_FAB_ICON.following;
-    btn.title = t(MODE_TOOLTIP_KEY[State.monitorMode] || MODE_TOOLTIP_KEY.following);
+function updateViewDial() {
+    const counts = liveCountsByView(State);
+    document.querySelectorAll('#fab-dial [data-view]').forEach(button => {
+        const mode = button.dataset.view;
+        button.classList.toggle('on', mode === State.viewMode);
+        button.title = t('viewTooltip', [t(VIEW_LABEL_KEY[mode]), String(counts[mode] ?? 0)]);
+    });
 }
 
-async function toggleMonitorMode() {
-    State.monitorMode = State.monitorMode === 'medal' ? 'following' : 'medal';
-    await setState({ monitorMode: State.monitorMode });
-    updateModeFab();
-    updateSettingsUI(State); // sync the settings radios if the panel is open
-    chrome.runtime.sendMessage({ type: 'updateStreamers' }).catch(() => {});
+async function setViewMode(mode) {
+    if (!Object.values(ViewMode).includes(mode) || mode === State.viewMode) return;
+    State.viewMode = mode;
+    await setState({ viewMode: mode });
+    updateViewDial();
+    renderGrid(State);
+
+    if (mode === ViewMode.ALL) await ensureFollowingSnapshot();
+}
+
+/**
+ * The 'all' view needs the follow list. When the 'rest' source is subscribed
+ * the cycle already paged it into streamingInfo; otherwise fetch it on demand.
+ *
+ * The reply only ever lands in followingCache — the background writes no diff
+ * state for it — so opening this view can never move the badge.
+ */
+async function ensureFollowingSnapshot() {
+    if (needsFollowing(State.alertScope) || snapshotInFlight) return;
+
+    const age = Date.now() - (State.followingCache?.fetchedAt || 0);
+    if (age < State.refreshInterval * 1000) return; // still fresh
+
+    // Past this age the cached "live" flags are not worth showing at all.
+    if (age > SNAPSHOT_MAX_AGE_MS) renderLoading('loadingFollowing');
+
+    snapshotInFlight = true;
+    try {
+        await chrome.runtime.sendMessage({ type: 'fetchFollowing' }).catch(() => {});
+        const { followingCache } = await getState(['followingCache']);
+        State.followingCache = followingCache;
+        renderGrid(State);
+        updateViewDial();
+    } finally {
+        snapshotInFlight = false;
+    }
 }
 
 // --- Add room (input lives in the settings custom-rooms accordion) ---
@@ -264,7 +305,7 @@ async function addRoom() {
         input.value = '';
         showAddRoomStatus(t('addedRoom', [uname]), 'success');
         renderCustomRoomList(State);
-        renderGrid(State);
+        onScopeChanged();
         chrome.runtime.sendMessage({ type: 'updateStreamers' }).catch(() => {});
     } catch (err) {
         showAddRoomStatus(t('addRoomError', [String(err.message || err)]), 'error');

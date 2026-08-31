@@ -1,298 +1,424 @@
 {
-    "extName": {
-        "message": "BiliStreamMonitor",
-        "description": "Extension name, used as the popup document title."
-    },
-    "syncing": {
-        "message": "同步中…",
-        "description": "Loading indicator shown in the card grid while state loads."
-    },
-    "loading": {
-        "message": "載入中…",
-        "description": "Placeholder title of the hover preview before room info arrives."
-    },
-    "settingsTitle": {
-        "message": "設定",
-        "description": "Settings panel header and settings button tooltip."
-    },
-    "appearance": {
-        "message": "外觀",
-        "description": "Appearance accordion header in settings."
-    },
-    "theme": {
-        "message": "主題",
-        "description": "Theme selector label."
-    },
-    "themeLight": {
-        "message": "淺色",
-        "description": "Light theme option."
-    },
-    "themeDark": {
-        "message": "深色",
-        "description": "Dark theme option."
-    },
-    "windowWidth": {
-        "message": "視窗寬度",
-        "description": "Appearance slider label."
-    },
-    "windowHeight": {
-        "message": "視窗高度",
-        "description": "Appearance slider label."
-    },
-    "avatarSize": {
-        "message": "頭像大小",
-        "description": "Appearance slider label."
-    },
-    "columnGapX": {
-        "message": "水平間距 (X)",
-        "description": "Appearance slider label for the horizontal grid gap."
-    },
-    "rowGapY": {
-        "message": "垂直間距 (Y)",
-        "description": "Appearance slider label for the vertical grid gap."
-    },
-    "cardPaddingX": {
-        "message": "卡片水平內距",
-        "description": "Appearance slider label for horizontal card padding."
-    },
-    "cardPaddingY": {
-        "message": "卡片垂直內距",
-        "description": "Appearance slider label for vertical card padding."
-    },
-    "textSize": {
-        "message": "文字大小",
-        "description": "Appearance slider label for the base font size."
-    },
-    "cardBackground": {
-        "message": "卡片背景",
-        "description": "Toggle label for showing the streamer card background."
-    },
-    "resetToDefaults": {
-        "message": "重設為預設值",
-        "description": "Button that resets all appearance settings."
-    },
-    "general": {
-        "message": "一般",
-        "description": "General settings section title."
-    },
-    "monitorMode": {
-        "message": "監控模式",
-        "description": "Label of the monitor mode radio group."
-    },
-    "modeFollowing": {
-        "message": "全部關注",
-        "description": "Monitor mode option: watch every followed streamer (default)."
-    },
-    "modeMedal": {
-        "message": "勳章牆",
-        "description": "Monitor mode option: watch only streamers on the medal wall."
-    },
-    "modeSwitchToFollowing": {
-        "message": "切換到全部關注模式",
-        "description": "Tooltip of the floating mode-switch button while the medal wall mode is active."
-    },
-    "modeSwitchToMedal": {
-        "message": "切換到勳章牆模式",
-        "description": "Tooltip of the floating mode-switch button while the following mode is active."
-    },
-    "refreshInterval": {
-        "message": "刷新間隔（秒）",
-        "description": "Label of the refresh interval input, in seconds."
-    },
-    "badgeNotifications": {
-        "message": "角標通知",
-        "description": "Label of the badge counter preference selector."
-    },
-    "browserNotify": {
-        "message": "瀏覽器通知",
-        "description": "Label of the browser notification preference selector."
-    },
-    "notifyAllLive": {
-        "message": "全部直播中",
-        "description": "Notification preference option: every live streamer."
-    },
-    "notifyFavoritesLikes": {
-        "message": "最愛與喜歡",
-        "description": "Notification preference option: streamers marked favorite or like."
-    },
-    "notifyFavoritesOnly": {
-        "message": "僅最愛",
-        "description": "Notification preference option: only streamers marked favorite."
-    },
-    "notifyPrefMedalOnly": {
-        "message": "僅勳章牆主播",
-        "description": "Notification preference option: only medal wall members (custom rooms always included)."
-    },
-    "notifyOff": {
-        "message": "關閉",
-        "description": "Notification preference option: disabled."
-    },
-    "previewMode": {
-        "message": "預覽模式",
-        "description": "Label of the hover preview mode selector."
-    },
-    "previewThumbnail": {
-        "message": "縮圖",
-        "description": "Preview mode option: show the stream cover thumbnail."
-    },
-    "previewLive": {
-        "message": "直播播放器",
-        "description": "Preview mode option: embed the live player."
-    },
-    "previewSound": {
-        "message": "預覽聲音",
-        "description": "Toggle label for enabling sound in the live preview."
-    },
-    "volume": {
-        "message": "音量",
-        "description": "Preview volume slider label."
-    },
-    "customRooms": {
-        "message": "自訂直播間",
-        "description": "Custom rooms accordion header in settings."
-    },
-    "addRoom": {
-        "message": "添加房間",
-        "description": "Label and tooltip of the add-room button in the custom rooms accordion."
-    },
-    "addRoomPlaceholder": {
-        "message": "貼上直播間網址或房間號",
-        "description": "Placeholder of the add-room input in the custom rooms accordion."
-    },
-    "refreshData": {
-        "message": "刷新資料",
-        "description": "Manual refresh button label and tooltip."
-    },
-    "refreshing": {
-        "message": "刷新中…",
-        "description": "Manual refresh button label while a refresh is running."
-    },
-    "hiddenList": {
-        "message": "隱藏清單",
-        "description": "Button opening the hidden streamers panel."
-    },
-    "hiddenStreamers": {
-        "message": "已隱藏的主播",
-        "description": "Hidden streamers panel header."
-    },
-    "exportSettings": {
-        "message": "匯出",
-        "description": "Tooltip of the export settings button."
-    },
-    "importSettings": {
-        "message": "匯入",
-        "description": "Tooltip of the import settings button."
-    },
-    "favorite": {
-        "message": "最愛",
-        "description": "Context menu action: mark the streamer as favorite."
-    },
-    "like": {
-        "message": "喜歡",
-        "description": "Context menu action: mark the streamer as liked."
-    },
-    "hide": {
-        "message": "隱藏",
-        "description": "Context menu action: hide the streamer from the grid."
-    },
-    "remove": {
-        "message": "移除",
-        "description": "Tooltip of the custom room remove button."
-    },
-    "dismiss": {
-        "message": "關閉",
-        "description": "Tooltip of the error banner close button."
-    },
-    "noStreamers": {
-        "message": "找不到主播。",
-        "description": "Empty state of the card grid."
-    },
-    "listEmpty": {
-        "message": "清單是空的",
-        "description": "Empty state of the hidden streamers list."
-    },
-    "unknown": {
-        "message": "未知",
-        "description": "Fallback streamer name in the hidden list when info is missing."
-    },
-    "previewError": {
-        "message": "預覽載入失敗。",
-        "description": "Placeholder shown in the hover preview when the room info request fails."
-    },
-    "errorAuth": {
-        "message": "Bilibili 登入已過期，請重新登入 bilibili.com——監控已暫停。",
-        "description": "Error banner text for an expired bilibili session."
-    },
-    "errorRisk": {
-        "message": "暫時被 Bilibili 限流，監控將自動恢復，請稍候。",
-        "description": "Error banner text for bilibili risk-control rate limiting."
-    },
-    "errorNetwork": {
-        "message": "網路錯誤，監控將自動重試。",
-        "description": "Error banner text for generic network failures."
-    },
-    "liveFor": {
-        "message": "已直播：$1 小時 $2 分",
-        "description": "Elapsed live time in the hover preview. $1 = hours, $2 = minutes.",
-        "placeholders": {
-            "hours": { "content": "$1", "example": "2" },
-            "minutes": { "content": "$2", "example": "35" }
-        }
-    },
-    "medalLevel": {
-        "message": "$1 · Lv.$2",
-        "description": "Medal caption on a streamer card. $1 = medal name, $2 = medal level.",
-        "placeholders": {
-            "medal": { "content": "$1", "example": "應援團" },
-            "level": { "content": "$2", "example": "21" }
-        }
-    },
-    "addRoomInvalid": {
-        "message": "無效的直播間網址或房間號",
-        "description": "Add-room status when the input cannot be parsed."
-    },
-    "addRoomDuplicateCustom": {
-        "message": "該房間已在自訂清單中",
-        "description": "Add-room status when the room is already a custom entry."
-    },
-    "addRoomDuplicateMain": {
-        "message": "該主播已在你的監控列表中",
-        "description": "Add-room status when the streamer is already covered by the monitor mode list."
-    },
-    "addRoomFetching": {
-        "message": "正在取得房間資訊…",
-        "description": "Add-room status while the room info request is in flight."
-    },
-    "addedRoom": {
-        "message": "已添加：$1",
-        "description": "Add-room success status. $1 = streamer name.",
-        "placeholders": {
-            "name": { "content": "$1", "example": "Alice" }
-        }
-    },
-    "addRoomError": {
-        "message": "錯誤：$1",
-        "description": "Add-room failure status. $1 = error message.",
-        "placeholders": {
-            "message": { "content": "$1", "example": "Room not found" }
-        }
-    },
-    "roomFallbackName": {
-        "message": "房間 $1",
-        "description": "Fallback display name for a room whose master info is unavailable. $1 = room id.",
-        "placeholders": {
-            "id": { "content": "$1", "example": "12345" }
-        }
-    },
-    "importInvalid": {
-        "message": "設定檔無效",
-        "description": "Alert shown when a settings import fails."
-    },
-    "notificationTitle": {
-        "message": "$1 開播了！",
-        "description": "Browser notification title when a streamer goes live. $1 = streamer name.",
-        "placeholders": {
-            "name": { "content": "$1", "example": "Alice" }
-        }
+  "extName": {
+    "message": "BiliStreamMonitor",
+    "description": "Extension name, used as the popup document title."
+  },
+  "syncing": {
+    "message": "同步中…",
+    "description": "Loading indicator shown in the card grid while state loads."
+  },
+  "loading": {
+    "message": "載入中…",
+    "description": "Placeholder title of the hover preview before room info arrives."
+  },
+  "settingsTitle": {
+    "message": "設定",
+    "description": "Settings panel header and settings button tooltip."
+  },
+  "appearance": {
+    "message": "外觀",
+    "description": "Appearance accordion header in settings."
+  },
+  "theme": {
+    "message": "主題",
+    "description": "Theme selector label."
+  },
+  "themeLight": {
+    "message": "淺色",
+    "description": "Light theme option."
+  },
+  "themeDark": {
+    "message": "深色",
+    "description": "Dark theme option."
+  },
+  "windowWidth": {
+    "message": "視窗寬度",
+    "description": "Appearance slider label."
+  },
+  "windowHeight": {
+    "message": "視窗高度",
+    "description": "Appearance slider label."
+  },
+  "avatarSize": {
+    "message": "頭像大小",
+    "description": "Appearance slider label."
+  },
+  "columnGapX": {
+    "message": "水平間距 (X)",
+    "description": "Appearance slider label for the horizontal grid gap."
+  },
+  "rowGapY": {
+    "message": "垂直間距 (Y)",
+    "description": "Appearance slider label for the vertical grid gap."
+  },
+  "cardPaddingX": {
+    "message": "卡片水平內距",
+    "description": "Appearance slider label for horizontal card padding."
+  },
+  "cardPaddingY": {
+    "message": "卡片垂直內距",
+    "description": "Appearance slider label for vertical card padding."
+  },
+  "textSize": {
+    "message": "文字大小",
+    "description": "Appearance slider label for the base font size."
+  },
+  "cardBackground": {
+    "message": "卡片背景",
+    "description": "Toggle label for showing the streamer card background."
+  },
+  "resetToDefaults": {
+    "message": "重設為預設值",
+    "description": "Button that resets all appearance settings."
+  },
+  "general": {
+    "message": "一般",
+    "description": "General settings section title."
+  },
+  "refreshInterval": {
+    "message": "刷新間隔（秒）",
+    "description": "Label of the refresh interval input, in seconds."
+  },
+  "previewMode": {
+    "message": "預覽模式",
+    "description": "Label of the hover preview mode selector."
+  },
+  "previewThumbnail": {
+    "message": "縮圖",
+    "description": "Preview mode option: show the stream cover thumbnail."
+  },
+  "previewLive": {
+    "message": "直播播放器",
+    "description": "Preview mode option: embed the live player."
+  },
+  "previewSound": {
+    "message": "預覽聲音",
+    "description": "Toggle label for enabling sound in the live preview."
+  },
+  "volume": {
+    "message": "音量",
+    "description": "Preview volume slider label."
+  },
+  "customRooms": {
+    "message": "自訂直播間",
+    "description": "Custom rooms accordion header in settings."
+  },
+  "addRoom": {
+    "message": "添加房間",
+    "description": "Label and tooltip of the add-room button in the custom rooms accordion."
+  },
+  "addRoomPlaceholder": {
+    "message": "貼上直播間網址或房間號",
+    "description": "Placeholder of the add-room input in the custom rooms accordion."
+  },
+  "refreshData": {
+    "message": "刷新資料",
+    "description": "Manual refresh button label and tooltip."
+  },
+  "refreshing": {
+    "message": "刷新中…",
+    "description": "Manual refresh button label while a refresh is running."
+  },
+  "hiddenList": {
+    "message": "隱藏清單",
+    "description": "Button opening the hidden streamers panel."
+  },
+  "hiddenStreamers": {
+    "message": "已隱藏的主播",
+    "description": "Hidden streamers panel header."
+  },
+  "exportSettings": {
+    "message": "匯出",
+    "description": "Tooltip of the export settings button."
+  },
+  "importSettings": {
+    "message": "匯入",
+    "description": "Tooltip of the import settings button."
+  },
+  "favorite": {
+    "message": "最愛",
+    "description": "Context menu action: mark the streamer as favorite."
+  },
+  "like": {
+    "message": "喜歡",
+    "description": "Context menu action: mark the streamer as liked."
+  },
+  "hide": {
+    "message": "隱藏",
+    "description": "Context menu action: hide the streamer from the grid."
+  },
+  "remove": {
+    "message": "移除",
+    "description": "Tooltip of the custom room remove button."
+  },
+  "dismiss": {
+    "message": "關閉",
+    "description": "Tooltip of the error banner close button."
+  },
+  "noStreamers": {
+    "message": "找不到主播。",
+    "description": "Empty state of the card grid."
+  },
+  "listEmpty": {
+    "message": "清單是空的",
+    "description": "Empty state of the hidden streamers list."
+  },
+  "unknown": {
+    "message": "未知",
+    "description": "Fallback streamer name in the hidden list when info is missing."
+  },
+  "previewError": {
+    "message": "預覽載入失敗。",
+    "description": "Placeholder shown in the hover preview when the room info request fails."
+  },
+  "errorAuth": {
+    "message": "Bilibili 登入已過期，請重新登入 bilibili.com——監控已暫停。",
+    "description": "Error banner text for an expired bilibili session."
+  },
+  "errorRisk": {
+    "message": "暫時被 Bilibili 限流，監控將自動恢復，請稍候。",
+    "description": "Error banner text for bilibili risk-control rate limiting."
+  },
+  "errorNetwork": {
+    "message": "網路錯誤，監控將自動重試。",
+    "description": "Error banner text for generic network failures."
+  },
+  "liveFor": {
+    "message": "已直播：$1 小時 $2 分",
+    "description": "Elapsed live time in the hover preview. $1 = hours, $2 = minutes.",
+    "placeholders": {
+      "hours": {
+        "content": "$1",
+        "example": "2"
+      },
+      "minutes": {
+        "content": "$2",
+        "example": "35"
+      }
     }
+  },
+  "medalLevel": {
+    "message": "$1 · Lv.$2",
+    "description": "Medal caption on a streamer card. $1 = medal name, $2 = medal level.",
+    "placeholders": {
+      "medal": {
+        "content": "$1",
+        "example": "應援團"
+      },
+      "level": {
+        "content": "$2",
+        "example": "21"
+      }
+    }
+  },
+  "addRoomInvalid": {
+    "message": "無效的直播間網址或房間號",
+    "description": "Add-room status when the input cannot be parsed."
+  },
+  "addRoomDuplicateCustom": {
+    "message": "該房間已在自訂清單中",
+    "description": "Add-room status when the room is already a custom entry."
+  },
+  "addRoomDuplicateMain": {
+    "message": "該主播已在你的監控列表中",
+    "description": "Add-room status when the streamer is already covered by the monitor mode list."
+  },
+  "addRoomFetching": {
+    "message": "正在取得房間資訊…",
+    "description": "Add-room status while the room info request is in flight."
+  },
+  "addedRoom": {
+    "message": "已添加：$1",
+    "description": "Add-room success status. $1 = streamer name.",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "Alice"
+      }
+    }
+  },
+  "addRoomError": {
+    "message": "錯誤：$1",
+    "description": "Add-room failure status. $1 = error message.",
+    "placeholders": {
+      "message": {
+        "content": "$1",
+        "example": "Room not found"
+      }
+    }
+  },
+  "roomFallbackName": {
+    "message": "房間 $1",
+    "description": "Fallback display name for a room whose master info is unavailable. $1 = room id.",
+    "placeholders": {
+      "id": {
+        "content": "$1",
+        "example": "12345"
+      }
+    }
+  },
+  "importInvalid": {
+    "message": "設定檔無效",
+    "description": "Alert shown when a settings import fails."
+  },
+  "notificationTitle": {
+    "message": "$1 開播了！",
+    "description": "Browser notification title when a streamer goes live. $1 = streamer name.",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "Alice"
+      }
+    }
+  },
+  "alertScope": {
+    "message": "提醒範圍",
+    "description": "Settings section title for the alert-source matrix."
+  },
+  "channelBadge": {
+    "message": "角標",
+    "description": "Matrix column header: the toolbar badge counter."
+  },
+  "channelNotify": {
+    "message": "通知",
+    "description": "Matrix column header: desktop notifications."
+  },
+  "sourceMedal": {
+    "message": "勳章牆主播",
+    "description": "Alert source row: streamers on the user's medal wall."
+  },
+  "sourceCustom": {
+    "message": "手動添加房間",
+    "description": "Alert source row: manually added rooms."
+  },
+  "sourceFav": {
+    "message": "特別關注",
+    "description": "Alert source row: streamers marked 'favorite'."
+  },
+  "sourceLike": {
+    "message": "喜歡",
+    "description": "Alert source row: streamers marked 'like'."
+  },
+  "sourceRest": {
+    "message": "其他全部關注",
+    "description": "Alert source row: every other followed streamer."
+  },
+  "sourceRestHint": {
+    "message": "需要翻頁抓取全關注，每週期約多 5 次請求。",
+    "description": "Cost warning under the 'other following' row."
+  },
+  "sourceExclusiveHint": {
+    "message": "每位主播只計入一列，以最先符合的一列為準。",
+    "description": "Explains that the source buckets are mutually exclusive."
+  },
+  "scopeTallyBadge": {
+    "message": "角標 $1 人",
+    "description": "Badge tally pill. $1 = number of streamers in scope.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "46"
+      }
+    }
+  },
+  "scopeTallyBadgeOff": {
+    "message": "角標關閉",
+    "description": "Badge tally pill when no source is checked."
+  },
+  "scopeTallyNotify": {
+    "message": "通知 $1 人",
+    "description": "Notify tally pill. $1 = number of streamers in scope.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "25"
+      }
+    }
+  },
+  "scopeTallyNotifyOff": {
+    "message": "通知關閉",
+    "description": "Notify tally pill when no source is checked."
+  },
+  "scopeCost": {
+    "message": "每週期 $1 次請求",
+    "description": "Request-cost readout. $1 = requests per refresh cycle.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "scopeCostApprox": {
+    "message": "每週期約 $1 次請求",
+    "description": "Request-cost readout when following pagination is on. $1 = approximate requests.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "7"
+      }
+    }
+  },
+  "scopeUnionHint": {
+    "message": "彈窗「提醒範圍」顯示模式取兩欄的聯集——任一欄勾選即計入，目前 $1 人。",
+    "description": "Explains that the Alert scope view is the union of both columns. $1 = count.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "46"
+      }
+    }
+  },
+  "scopeSeedHint": {
+    "message": "首次安裝、改動上方來源、風控退避結束後的第一個週期只同步狀態，不補發任何提醒。",
+    "description": "Explains the silent seeding rule."
+  },
+  "viewAlert": {
+    "message": "提醒範圍",
+    "description": "Display mode: the alert scope."
+  },
+  "viewMedal": {
+    "message": "勳章牆",
+    "description": "Display mode: medal wall only."
+  },
+  "viewMark": {
+    "message": "打標",
+    "description": "Display mode: marked streamers only."
+  },
+  "viewAll": {
+    "message": "全部直播",
+    "description": "Display mode: everything currently known."
+  },
+  "viewTooltip": {
+    "message": "$1 · $2 人直播中",
+    "description": "Display-mode button tooltip. $1 = mode name, $2 = live count.",
+    "placeholders": {
+      "mode": {
+        "content": "$1",
+        "example": "Medal wall"
+      },
+      "count": {
+        "content": "$2",
+        "example": "14"
+      }
+    }
+  },
+  "noStreamersInView": {
+    "message": "這個範圍目前沒有人。",
+    "description": "Empty state when the chosen display mode has no streamers."
+  },
+  "loadingFollowing": {
+    "message": "正在載入關注列表…",
+    "description": "Shown while the on-demand following snapshot loads."
+  },
+  "notificationMore": {
+    "message": "另有 $1 人開播",
+    "description": "Collapsed notification for streamers past the per-cycle cap. $1 = how many more.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  }
 }

@@ -2,7 +2,7 @@
 
 import { ALARM_NAME, MIN_REFRESH_INTERVAL } from '../shared/constants.js';
 import { getState } from '../shared/storage.js';
-import { runUpdateCycle } from './poller.js';
+import { runUpdateCycle, fetchFollowingSnapshot } from './poller.js';
 import { registerNotificationHandlers } from './notify.js';
 
 registerNotificationHandlers();
@@ -41,6 +41,15 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
             .then(result => sendResponse(result))
             .catch(e => sendResponse({ ok: false, reason: 'internal', message: String(e) }));
         return true; // async response: keep the port open
+    }
+
+    // Popup asking for the "all" view's data. Writes followingCache only;
+    // never touches the diff state the badge is computed from.
+    if (action === 'fetchFollowing') {
+        fetchFollowingSnapshot()
+            .then(result => sendResponse(result))
+            .catch(e => sendResponse({ ok: false, reason: 'internal', message: String(e) }));
+        return true;
     }
 
     if (action === 'setRefreshInterval') {

@@ -3,6 +3,8 @@
 import { escapeHtml, t } from '../shared/i18n.js';
 import { mergeStreamers } from '../shared/merge.js';
 import { setState } from '../shared/storage.js';
+import { ViewMode } from '../shared/constants.js';
+import { inViewMode } from '../shared/scope.js';
 import { handleHover, handleLeave } from './preview.js';
 
 const gridContainer = document.getElementById('grid-container');
@@ -12,15 +14,52 @@ const contextMenu = document.getElementById('context-menu');
 let contextTargetUid = null;
 
 /**
- * Single merged render source (audit #8: the old popup duplicated the
- * medal-wall + custom merge logic in three places).
- * Hidden uids are filtered with a Number compare (deletedStreamers is
- * normalized to Numbers by shared/storage).
+ * Everything the popup knows about, before the display-mode filter.
+ *
+ * In the 'all' mode the on-demand following snapshot is folded in; it is
+ * de-duplicated against streamingInfo here rather than in storage, because the
+ * background must never see the two mixed (a snapshot entry reaching the diff
+ * would seed the badge — see background/poller.js fetchFollowingSnapshot).
  */
+function getKnownStreamers(state) {
+    let primary = state.streamers;
+
+    if (state.viewMode === ViewMode.ALL) {
+        const snapshot = (state.followingCache && state.followingCache.list) || [];
+        if (snapshot.length > 0) {
+            const seen = new Set(primary.map(s => String(s.uid)));
+            primary = [...primary, ...snapshot.filter(s => !seen.has(String(s.uid)))];
+        }
+    }
+
+    // Single merge source of truth (audit #8).
+    return mergeStreamers(primary, state.customStreamers);
+}
+
+/** Merged, minus hidden streamers, minus anything outside the current display mode. */
 function getVisibleStreamers(state) {
-    const merged = mergeStreamers(state.streamers, state.customStreamers);
     const deletedUids = new Set((state.deletedUids || []).map(Number));
-    return merged.filter(s => !deletedUids.has(Number(s.uid)));
+    return getKnownStreamers(state)
+        .filter(s => !deletedUids.has(Number(s.uid)))
+        .filter(s => inViewMode(s, state.states, state.alertScope, state.viewMode));
+}
+
+/** Everything currently known to be live and not hidden. */
+export function knownLiveStreamers(state) {
+    const deletedUids = new Set((state.deletedUids || []).map(Number));
+    return getKnownStreamers(state)
+        .filter(s => !deletedUids.has(Number(s.uid)))
+        .filter(s => Number(s.liveStatus) === 1);
+}
+
+/** Live count per display mode, for the dial tooltips. */
+export function liveCountsByView(state) {
+    const known = knownLiveStreamers(state);
+    const counts = {};
+    for (const mode of Object.values(ViewMode)) {
+        counts[mode] = known.filter(s => inViewMode(s, state.states, state.alertScope, mode)).length;
+    }
+    return counts;
 }
 
 function getWeight(s, state) {
@@ -68,7 +107,16 @@ function createCardHTML(s, state) {
     `;
 }
 
-/** Full grid render: merge -> filter hidden -> sort -> paint -> bind events. */
+/** Loading placeholder for the on-demand following fetch. */
+export function renderLoading(messageKey = 'syncing') {
+    gridContainer.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>${escapeHtml(t(messageKey))}</p>
+        </div>`;
+}
+
+/** Full grid render: merge -> filter hidden -> filter by view -> sort -> paint -> bind. */
 export function renderGrid(state) {
     const visibleStreamers = getVisibleStreamers(state);
 
@@ -76,7 +124,7 @@ export function renderGrid(state) {
         gridContainer.innerHTML = `
             <div class="loading-state">
                 <i class="fab fa-bilibili" style="font-size: 32px; margin-bottom: 10px; opacity:0.5;"></i>
-                <p>${escapeHtml(t('noStreamers'))}</p>
+                <p>${escapeHtml(t('noStreamersInView'))}</p>
             </div>`;
         return;
     }
@@ -140,9 +188,16 @@ function showContextMenu(e, uid, state) {
 /**
  * Bind the context menu click handler once. favorite/like toggle the mark,
  * hide moves the uid into deletedStreamers; every action re-renders and asks
- * the background to refresh (batched now, so the extra cycle is cheap).
+ * the background to refresh.
+ *
+ * Marking changes who the batch call tracks, so the next cycle sees a uid it
+ * could not see before. background/poller.js absorbs that through
+ * previousCoverage rather than announcing it as a new stream.
+ *
+ * @param {Object} state shared popup state
+ * @param {Function} [onMarksChanged] re-render hooks that depend on the marks
  */
-export function initContextMenu(state) {
+export function initContextMenu(state, onMarksChanged) {
     contextMenu.addEventListener('click', async (e) => {
         const action = e.target.closest('.menu-item')?.dataset.action;
         if (!action || !contextTargetUid) return;
@@ -160,6 +215,7 @@ export function initContextMenu(state) {
         }
 
         renderGrid(state);
+        if (onMarksChanged) onMarksChanged();
         chrome.runtime.sendMessage({ type: 'updateStreamers' }).catch(() => {});
     });
 }
