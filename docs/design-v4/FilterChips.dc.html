@@ -1,0 +1,368 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    :root {
+      --bg-color: #f5f5f7;
+      --card-bg: rgba(255, 255, 255, 0.85);
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --accent-blue: #007aff;
+      --accent-red: #ff3b30;
+      --accent-orange: #ff9500;
+      --bilibili-pink: #fb7299;
+      --border-color: rgba(0, 0, 0, 0.08);
+      --streamer-card-border: rgba(255, 255, 255, 0.6);
+      --streamer-name-color: #0000ff;
+      --avatar-border: #ffffff;
+      --avatar-shadow: rgba(0, 0, 0, 0.1);
+      --shadow-float: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      width: 500px;
+      height: 550px;
+      overflow: hidden;
+      background: var(--bg-color);
+      color: var(--text-primary);
+      font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      font-size: 14px;
+      user-select: none;
+    }
+    a { color: var(--accent-blue); text-decoration: none; }
+    a:hover { color: #0063cc; }
+
+    .orb { position: absolute; border-radius: 50%; filter: blur(60px); z-index: 0; opacity: 0.6; }
+    .orb-1 { top: -50px; left: -50px; width: 200px; height: 200px; background: #e0f2ff; }
+    .orb-2 { bottom: -50px; right: -50px; width: 250px; height: 250px; background: #ffe0e0; }
+
+    .app { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; }
+
+    .chipbar {
+      flex-shrink: 0;
+      padding: 11px 16px 10px;
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(30px);
+      border-bottom: 1px solid var(--border-color);
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 10px 5px 8px;
+      border-radius: 15px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.85);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .chip:hover { border-color: #c7c7cc; color: var(--text-primary); }
+    .chip.on {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: #fff;
+      font-weight: 600;
+    }
+    .chip .n {
+      font-size: 11px;
+      font-weight: 600;
+      opacity: 0.72;
+      font-variant-numeric: tabular-nums;
+    }
+    .chip .glyph { display: flex; }
+    .chip.on .glyph { color: #fff; }
+    .glyph.fav { color: var(--accent-red); }
+    .glyph.like { color: var(--accent-orange); }
+    .glyph.medal { color: #b8860b; }
+    .glyph.custom { color: var(--accent-blue); }
+    .glyph.rest { color: #a1a1a6; }
+
+    .chipfoot {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .reset {
+      font-size: 11px; font-weight: 600;
+      color: var(--accent-blue);
+      cursor: pointer;
+      background: none; border: none; font-family: inherit; padding: 0;
+    }
+    .reset:hover { text-decoration: underline; }
+    .reset.muted { color: var(--text-secondary); cursor: default; }
+    .reset.muted:hover { text-decoration: none; }
+
+    .grid {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 16px 70px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      column-gap: 12px;
+      row-gap: 12px;
+      align-content: start;
+    }
+    .grid::-webkit-scrollbar { width: 4px; }
+    .grid::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 2px; }
+
+    .card {
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      padding: 10px 0;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      position: relative;
+      min-width: 0;
+      transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: var(--streamer-card-border);
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .card.offline { filter: grayscale(100%); opacity: 0.6; }
+    .av { position: relative; width: 84px; height: 84px; margin-bottom: 6px; }
+    .av-face {
+      width: 100%; height: 100%; border-radius: 50%;
+      border: 2px solid var(--avatar-border);
+      box-shadow: 0 2px 6px var(--avatar-shadow);
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    .dot {
+      position: absolute; top: 5px; right: 5px;
+      width: 12px; height: 12px; border-radius: 50%;
+      border: 2px solid var(--avatar-border);
+      background: var(--accent-red);
+    }
+    .mark {
+      position: absolute; bottom: 0; right: 0;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--avatar-border);
+      box-shadow: 0 2px 5px var(--avatar-shadow);
+      display: flex; align-items: center; justify-content: center;
+      transform: translate(10%, 10%);
+    }
+    .mark.fav { color: var(--accent-red); }
+    .mark.like { color: var(--accent-orange); }
+    .cname {
+      width: 100%;
+      font-size: 14px; font-weight: 600; line-height: 1.3;
+      margin-bottom: 2px;
+      color: var(--streamer-name-color);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      padding: 0 2px;
+    }
+    .card.offline .cname { color: var(--text-primary); }
+    .cmeta {
+      font-size: 12px; color: var(--text-secondary);
+      max-width: 96%;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .empty {
+      grid-column: 1 / -1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 200px; gap: 10px;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .fab-wrap {
+      position: absolute; bottom: 20px; right: 20px; z-index: 50;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+    .fab {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-float);
+      color: var(--text-primary);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+  </style>
+</helmet>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="app">
+  <div class="chipbar">
+    <div class="chips">
+      <sc-for list="{{chips}}" as="ch" hint-placeholder-count="5">
+        <button class="chip {{ch.on}}" onClick="{{ ch.toggle }}">
+          <span class="glyph {{ch.kind}}">
+            <sc-if value="{{ch.isMedal}}" hint-placeholder-val="{{ true }}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm-3.2 1.1L6.5 22l3.6-1.6L12 22l1.9-1.6L17.5 22l-2.3-5.9a6.9 6.9 0 0 1-6.4 0z"/></svg>
+            </sc-if>
+            <sc-if value="{{ch.isCustom}}" hint-placeholder-val="{{ false }}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
+            </sc-if>
+            <sc-if value="{{ch.isFav}}" hint-placeholder-val="{{ false }}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </sc-if>
+            <sc-if value="{{ch.isLike}}" hint-placeholder-val="{{ false }}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+            </sc-if>
+            <sc-if value="{{ch.isRest}}" hint-placeholder-val="{{ false }}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            </sc-if>
+          </span>
+          <span>{{ch.label}}</span>
+          <span class="n">{{ch.count}}</span>
+        </button>
+      </sc-for>
+    </div>
+    <div class="chipfoot">
+      <span>{{summary}}</span>
+      <button class="reset {{resetCls}}" onClick="{{ reset }}">回到提醒範圍</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <sc-for list="{{cards}}" as="c" hint-placeholder-count="10">
+      <div class="card {{c.cls}}">
+        <div class="av">
+          <div class="av-face" style="background: {{c.hue}}">
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5z"/></svg>
+          </div>
+          <sc-if value="{{c.isLive}}" hint-placeholder-val="{{ true }}">
+            <span class="dot"></span>
+          </sc-if>
+          <sc-if value="{{c.isFav}}" hint-placeholder-val="{{ false }}">
+            <span class="mark fav">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </span>
+          </sc-if>
+          <sc-if value="{{c.isLike}}" hint-placeholder-val="{{ false }}">
+            <span class="mark like">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+            </span>
+          </sc-if>
+        </div>
+        <div class="cname">{{c.name}}</div>
+        <div class="cmeta">{{c.meta}}</div>
+      </div>
+    </sc-for>
+    <sc-if value="{{isEmpty}}" hint-placeholder-val="{{ false }}">
+      <div class="empty">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" opacity="0.45" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zM8 10h8v2H8z"/></svg>
+        <span>沒有勾選任何來源</span>
+      </div>
+    </sc-if>
+  </div>
+
+  <div class="fab-wrap">
+    <div class="fab">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.62.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.1 7.1 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.7 8.87a.5.5 0 0 0 .12.61l2.03 1.58c-.04.31-.06.62-.06.94s.02.63.06.94L2.82 14.5a.5.5 0 0 0-.12.61l1.92 3.32c.12.22.38.3.6.22l2.39-.96c.5.38 1.04.7 1.63.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.63-.94l2.39.96c.22.08.48 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":500,"height":550}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    // Same default as the alert scope, so opening the popup shows the alert set.
+    this.state = { on: { medal: true, custom: true, fav: true, like: true, rest: false } };
+  }
+
+  people() {
+    return [
+      { name: '星野奏',    hue: '#fb7299', source: 'medal',  mark: 'fav',  live: true,  medal: '星奏 22' },
+      { name: '白羽ゆき',  hue: '#7d9bf5', source: 'medal',  mark: 'like', live: true,  medal: '白羽 18' },
+      { name: '夜語 Nox',  hue: '#9b7df5', source: 'follow', mark: 'fav',  live: true,  medal: null },
+      { name: '檸檬糖',    hue: '#f5c14f', source: 'medal',  mark: null,   live: true,  medal: '檸檬 15' },
+      { name: '深海電台',  hue: '#4fc3f5', source: 'custom', mark: null,   live: true,  medal: null },
+      { name: '千夜',      hue: '#c78ef5', source: 'medal',  mark: null,   live: true,  medal: '千夜 20' },
+      { name: '霜月 Lyra', hue: '#6fd6b3', source: 'follow', mark: 'like', live: true,  medal: null },
+      { name: '澪 Mio',    hue: '#5b8def', source: 'follow', mark: null,   live: true,  medal: null },
+      { name: '灰羽',      hue: '#8e9aa8', source: 'follow', mark: null,   live: true,  medal: null },
+      { name: '朱鷺',      hue: '#f58f5b', source: 'follow', mark: null,   live: true,  medal: null },
+      { name: '鈴音',      hue: '#f5738f', source: 'follow', mark: null,   live: true,  medal: null },
+      { name: '黑貓咖啡',  hue: '#7a8b99', source: 'follow', mark: null,   live: true,  medal: null },
+      { name: '綺羅星',    hue: '#f57d9b', source: 'medal',  mark: null,   live: false, medal: '綺星 12' },
+      { name: '空色スイ',  hue: '#56c8e0', source: 'custom', mark: null,   live: false, medal: null }
+    ];
+  }
+
+  bucket(p) {
+    if (p.source === 'medal') return 'medal';
+    if (p.source === 'custom') return 'custom';
+    if (p.mark === 'fav') return 'fav';
+    if (p.mark === 'like') return 'like';
+    return 'rest';
+  }
+
+  renderVals() {
+    const on = this.state.on;
+    const all = this.people();
+
+    const defs = [
+      { key: 'medal',  label: '勳章牆' },
+      { key: 'custom', label: '手動' },
+      { key: 'fav',    label: '特別關注' },
+      { key: 'like',   label: '喜歡' },
+      { key: 'rest',   label: '其他關注' }
+    ];
+
+    const chips = defs.map((d) => ({
+      label: d.label,
+      kind: d.key,
+      isMedal: d.key === 'medal',
+      isCustom: d.key === 'custom',
+      isFav: d.key === 'fav',
+      isLike: d.key === 'like',
+      isRest: d.key === 'rest',
+      count: all.filter((p) => p.live && this.bucket(p) === d.key).length,
+      on: on[d.key] ? 'on' : '',
+      toggle: () => {
+        const next = Object.assign({}, on);
+        next[d.key] = !next[d.key];
+        this.setState({ on: next });
+      }
+    }));
+
+    const visible = all
+      .filter((p) => on[this.bucket(p)])
+      .sort((a, b) => (b.live ? 1 : 0) - (a.live ? 1 : 0));
+
+    const cards = visible.map((p) => ({
+      name: p.name,
+      hue: p.hue,
+      cls: p.live ? '' : 'offline',
+      isLive: p.live,
+      isFav: p.mark === 'fav',
+      isLike: p.mark === 'like',
+      meta: p.medal || (p.source === 'custom' ? '手動添加' : '')
+    }));
+
+    const isDefault = on.medal && on.custom && on.fav && on.like && !on.rest;
+    const liveN = visible.filter((p) => p.live).length;
+
+    return {
+      chips: chips,
+      cards: cards,
+      isEmpty: cards.length === 0,
+      summary: liveN + ' 人直播中',
+      resetCls: isDefault ? 'muted' : '',
+      reset: () => this.setState({ on: { medal: true, custom: true, fav: true, like: true, rest: false } })
+    };
+  }
+}
+</script>
+</body>
+</html>

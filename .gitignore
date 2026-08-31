@@ -1,0 +1,5 @@
+# impeccable hook per-session cache (config.json is shared and tracked)
+.impeccable/hook.cache.json
+
+# Design canvas build output; re-seed it from the .dc.html sources instead
+docs/design-v4/bili-monitor-alert-scope.html
