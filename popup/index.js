@@ -54,6 +54,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (State.newlyStreaming.length > 0) {
         setState({ newlyStreaming: [] });
     }
+
+    // viewMode is persisted, so reopening on 'all' would otherwise repaint a
+    // snapshot from hours ago -- offline streamers still lit, new ones absent.
+    if (State.viewMode === ViewMode.ALL) await ensureFollowingSnapshot();
 });
 
 // --- Data loading ---
@@ -194,8 +198,10 @@ async function setViewMode(mode) {
  * The 'all' view needs the follow list. When the 'rest' source is subscribed
  * the cycle already paged it into streamingInfo; otherwise fetch it on demand.
  *
- * The reply only ever lands in followingCache — the background writes no diff
- * state for it — so opening this view can never move the badge.
+ * On success the reply only lands in followingCache, which the refresh cycle
+ * never reads, so opening this view cannot move the badge. If the fetch trips
+ * risk control it does share the cycle's pause — the block is per IP — and
+ * monitoring stops until the backoff expires; the error banner reports it.
  */
 async function ensureFollowingSnapshot() {
     if (needsFollowing(State.alertScope) || snapshotInFlight) return;

@@ -155,10 +155,6 @@
     "message": "关闭",
     "description": "Tooltip of the error banner close button."
   },
-  "noStreamers": {
-    "message": "未找到主播。",
-    "description": "Empty state of the card grid."
-  },
   "listEmpty": {
     "message": "列表为空",
     "description": "Empty state of the hidden streamers list."

@@ -155,10 +155,6 @@
     "message": "Dismiss",
     "description": "Tooltip of the error banner close button."
   },
-  "noStreamers": {
-    "message": "No streamers found.",
-    "description": "Empty state of the card grid."
-  },
   "listEmpty": {
     "message": "List is empty",
     "description": "Empty state of the hidden streamers list."

@@ -4,7 +4,9 @@ import {
     AlertChannel,
     BADGE_MAX,
     BACKOFF_BASE_MS,
-    BACKOFF_MAX_MS
+    BACKOFF_MAX_MS,
+    STALE_BASELINE_CYCLES,
+    MIN_STALE_BASELINE_MS
 } from '../shared/constants.js';
 import {
     BiliApiError,
@@ -15,7 +17,7 @@ import {
 } from '../shared/api.js';
 import { migrateIfNeeded, getState, setState } from '../shared/storage.js';
 import { mergeStreamers, normalizeStreamer } from '../shared/merge.js';
-import { inChannel, needsFollowing, scopeSignature, watchedUids } from '../shared/scope.js';
+import { inChannel, needsFollowing, scopeSignature, trackedUids } from '../shared/scope.js';
 import { sendLiveNotifications, pruneNotifRoomMap } from './notify.js';
 
 // Module-level guards. Both are lost on SW restart; that is acceptable because
@@ -50,6 +52,20 @@ function classifyError(error) {
     return 'network';
 }
 
+/** Persist a risk-control pause and force the next live cycle to re-seed. */
+async function applyRiskBackoff(lastError) {
+    consecutiveRiskErrors += 1;
+    await setState({
+        lastError,
+        // Exponential backoff: 5 -> 10 -> 20 -> 30 (cap) minutes
+        backoffUntil: Date.now()
+            + Math.min(BACKOFF_BASE_MS * 2 ** (consecutiveRiskErrors - 1), BACKOFF_MAX_MS),
+        // The world moved on while we were paused; a stale baseline would read
+        // as a mass of new streams.
+        seedSignature: ''
+    });
+}
+
 /**
  * Fetch everything the current alert scope needs.
  *
@@ -58,99 +74,108 @@ function classifyError(error) {
  * diffed as "just started" on the next one — the exact path that produced
  * three-digit badges. A thrown error leaves previousLiveUids untouched.
  *
- * @returns {Promise<{primary: Array, coverage: {uids: number[], following: boolean}}>}
+ * @returns {Promise<{primary: Array, trackedUids: number[], followingCovered: boolean}>}
  */
 async function fetchScope(alertScope, customStreamers, streamerStates) {
     const selfUid = await getTargetUid();
     if (selfUid == null) throw new BiliApiError('Not logged in', { isAuth: true });
 
-    // 1. Medal wall — always. One request, no pagination, and it is the only
-    //    source of medal name/level, which every card displays.
+    // 1. Medal wall — always. One request, no pagination, and the only source
+    //    of medal name/level, which every card displays.
     const medalWall = await fetchMedalWall(selfUid);
-    const medalByUid = new Map(medalWall.map(m => [Number(m.uid), m]));
-    const medalUids = new Set(medalByUid.keys());
+    const medalUids = medalWall.map(m => Number(m.uid));
 
-    const primary = [...medalWall];
-    const seen = new Set(medalUids);
-    let followingFetched = false;
+    // 2. One batched status lookup covering the medal wall, custom rooms and
+    //    every marked uid. MedalWall reports live status but returns no title,
+    //    cover or area, so without this a medal-bucket notification would have
+    //    an empty body. get_status_info_by_uids needs no cookie, accepts
+    //    arbitrary uids, and chunks at 200 (shared/api.js).
+    const tracked = trackedUids(customStreamers, streamerStates, medalUids);
+    const statusMap = tracked.length > 0 ? await fetchRoomStatusByUids(tracked) : new Map();
 
-    // 2. Following pagination — only when the 'rest' source is subscribed.
-    //    Everything else is uid-addressable and far cheaper.
+    const primary = [];
+    const seen = new Set();
+
+    /** Batch data wins on room fields; the medal wall keeps name and level. */
+    const withStatus = (base) => {
+        const info = statusMap.get(Number(base.uid));
+        if (!info) return base;
+        return {
+            ...base,
+            roomId: info.roomId || base.roomId,
+            uname: base.uname || info.uname,
+            face: base.face || info.face,
+            title: info.title,
+            cover: info.cover,
+            area: info.area,
+            liveStatus: info.liveStatus
+        };
+    };
+
+    for (const entry of medalWall) {
+        primary.push(withStatus(entry));
+        seen.add(Number(entry.uid));
+    }
+
+    // 3. Following pagination — only when the 'rest' source is subscribed.
+    let followingCovered = false;
     if (needsFollowing(alertScope)) {
         const { live, liveCount, truncated } = await fetchFollowingLive();
-        if (truncated) {
-            console.warn(`Following list truncated: collected ${live.length} of ~${liveCount} live entries`);
+        // Claim coverage only when the walk was demonstrably complete. Page
+        // boundaries shift while paging, so a short read can happen without the
+        // truncation flag; claiming coverage then would let the missed
+        // streamers diff as "just started" when they surface next cycle.
+        followingCovered = !truncated && live.length >= liveCount;
+        if (!followingCovered) {
+            console.warn(`Following walk incomplete: collected ${live.length} of ~${liveCount} live entries`);
         }
-        // Only claim coverage of the follow list when it was read in full.
-        // A truncated page walk leaves live streamers unseen, and claiming
-        // otherwise would let them diff as "just started" once they surface.
-        followingFetched = !truncated;
         for (const streamer of live) {
             const uid = Number(streamer.uid);
             if (seen.has(uid)) continue;
-            // Carry medal data across so sourceOf() buckets them correctly.
-            const medal = medalByUid.get(uid);
-            if (medal) {
-                streamer.medalName = medal.medalName;
-                streamer.medalLevel = medal.medalLevel;
-            }
             primary.push(streamer);
             seen.add(uid);
         }
     }
 
-    // 3. One batched status lookup for custom rooms and marked streamers the
-    //    medal wall did not already cover. get_status_info_by_uids needs no
-    //    cookie, accepts arbitrary uids, and chunks at 200 (shared/api.js).
-    const pending = watchedUids(customStreamers, streamerStates, medalUids);
-    if (pending.length > 0) {
-        const statusMap = await fetchRoomStatusByUids(pending);
-
-        // Custom entries are updated in place and persisted by the caller.
-        for (const entry of customStreamers) {
-            const uid = Number(entry.uid);
-            if (!Number.isFinite(uid) || medalUids.has(uid)) continue;
-            const info = statusMap.get(uid);
-            if (info) {
-                entry.roomId = info.roomId;
-                entry.uname = info.uname;
-                entry.face = info.face;
-                entry.title = info.title;
-                entry.cover = info.cover;
-                entry.area = info.area;
-                entry.liveStatus = info.liveStatus;
-            } else {
-                entry.liveStatus = 0; // missing key = uid has no room
-            }
-        }
-
-        // Marked streamers that are neither on the medal wall nor already in
-        // the primary list get a standalone entry, live or not.
-        for (const uid of pending) {
-            if (seen.has(uid)) continue;
-            const info = statusMap.get(uid);
-            if (!info) continue;
-            primary.push(normalizeStreamer({ uid, ...info }));
-            seen.add(uid);
+    // 4. Custom entries are updated in place and persisted by the caller.
+    for (const entry of customStreamers) {
+        const uid = Number(entry.uid);
+        if (!Number.isFinite(uid)) continue;
+        const info = statusMap.get(uid);
+        if (info) {
+            entry.roomId = info.roomId;
+            entry.uname = info.uname;
+            entry.face = info.face;
+            entry.title = info.title;
+            entry.cover = info.cover;
+            entry.area = info.area;
+            entry.liveStatus = info.liveStatus;
+        } else {
+            entry.liveStatus = 0; // missing key = uid has no room
         }
     }
 
-    return {
-        primary,
-        coverage: { uids: [...medalUids, ...pending], following: followingFetched }
-    };
+    // 5. Marked streamers not covered above get a standalone entry, live or not.
+    for (const uid of tracked) {
+        if (seen.has(uid)) continue;
+        const info = statusMap.get(uid);
+        if (!info) continue;
+        primary.push(normalizeStreamer({ uid, ...info }));
+        seen.add(uid);
+    }
+
+    return { primary, trackedUids: tracked, followingCovered };
 }
 
 /**
  * One-off `following` page walk for the popup's "all" display mode, used when
  * the 'rest' source is not subscribed and the cycle therefore never pages it.
  *
- * Deliberately NOT part of runUpdateCycle and sharing none of its state: it
- * writes exactly one key, followingCache, and the cycle never reads that key.
- * The isolation is structural rather than a filter someone has to remember —
- * an on-demand fetch can therefore never seed previousLiveUids, feed
- * newlyStreaming, or move the badge. It shares the in-flight guard and the
- * backoff gate so the two paths never issue requests at the same time.
+ * On success it writes exactly one key, followingCache, which runUpdateCycle
+ * never reads — so a snapshot can never seed previousLiveUids, feed
+ * newlyStreaming, or move the badge. On a risk-control error it DOES share the
+ * cycle's penalty state (backoffUntil, lastError, seedSignature): the block is
+ * per IP, so pretending the cycle is unaffected would just keep hammering it.
  *
  * @returns {Promise<{ok: true, count: number}|{ok: false, reason: string}>}
  */
@@ -166,16 +191,7 @@ export async function fetchFollowingSnapshot() {
         return { ok: true, count: live.length };
     } catch (error) {
         const reason = classifyError(error);
-        if (error instanceof BiliApiError && error.isRiskControl) {
-            consecutiveRiskErrors += 1;
-            await setState({
-                lastError: reason,
-                backoffUntil: Date.now()
-                    + Math.min(BACKOFF_BASE_MS * 2 ** (consecutiveRiskErrors - 1), BACKOFF_MAX_MS),
-                // The next real cycle re-seeds: we were blind during the pause.
-                seedSignature: ''
-            });
-        }
+        if (error instanceof BiliApiError && error.isRiskControl) await applyRiskBackoff(reason);
         console.error(`Following snapshot failed (${reason}):`, error);
         return { ok: false, reason };
     } finally {
@@ -208,6 +224,8 @@ export async function runUpdateCycle(trigger) {
             'previousCoverage',
             'newlyStreaming',
             'seedSignature',
+            'lastSuccessAt',
+            'refreshInterval',
             'backoffUntil'
         ]);
 
@@ -217,7 +235,8 @@ export async function runUpdateCycle(trigger) {
         }
 
         const { alertScope, streamerStates, customStreamers } = state;
-        const { primary, coverage } = await fetchScope(alertScope, customStreamers, streamerStates);
+        const { primary, trackedUids: tracked, followingCovered } =
+            await fetchScope(alertScope, customStreamers, streamerStates);
 
         // Single merge source of truth (audit #8)
         const merged = mergeStreamers(primary, customStreamers);
@@ -229,20 +248,38 @@ export async function runUpdateCycle(trigger) {
         const currentLiveUids = liveStreamers.map(s => Number(s.uid));
         const liveByUid = new Map(liveStreamers.map(s => [Number(s.uid), s]));
 
+        // Coverage must describe the same population the diff runs over, so
+        // hidden uids are excluded here too. Otherwise un-hiding someone who
+        // has been live for hours would diff them as a fresh stream.
+        const coverage = {
+            uids: tracked.filter(uid => !deletedUids.has(uid)),
+            following: followingCovered
+        };
+
         const persistBase = {
             streamingInfo: primary,
             customStreamers,
             previousLiveUids: currentLiveUids,
             previousCoverage: coverage,
+            lastSuccessAt: Date.now(),
             lastError: null
         };
 
-        // Silent seeding. The signature changes on first install, whenever a
-        // source is added or removed, and after a backoff (which clears it).
-        // Seeding records the baseline WITHOUT counting or notifying, so a
-        // changed scope can never dump its whole live set onto the badge.
+        // Seed silently when the baseline cannot be trusted:
+        //  - the subscribed source set changed (or this is a first run)
+        //  - too long since the last successful cycle: browser restarted,
+        //    machine slept, or auth/network failed for hours. Neither the
+        //    signature nor the coverage set can notice elapsed time, and
+        //    without this check every stream started while we were blind is
+        //    announced at once — the three-digit badge, by another door.
         const signature = scopeSignature(alertScope);
-        if (signature !== state.seedSignature) {
+        const staleAfter = Math.max(
+            MIN_STALE_BASELINE_MS,
+            (Number(state.refreshInterval) || 60) * 1000 * STALE_BASELINE_CYCLES
+        );
+        const baselineAge = Date.now() - (state.lastSuccessAt || 0);
+
+        if (signature !== state.seedSignature || baselineAge > staleAfter) {
             await setState({ ...persistBase, newlyStreaming: [], seedSignature: signature });
             await updateBadge(0);
             consecutiveRiskErrors = 0;
@@ -253,8 +290,8 @@ export async function runUpdateCycle(trigger) {
 
         // Diff against the previous cycle. A uid the previous cycle could not
         // see is absorbed silently instead of counting as a new stream: marking
-        // someone who is already live, or adding a custom room mid-broadcast,
-        // must not fire an alert for a stream that started hours ago.
+        // someone who is already live, un-hiding them, or adding a custom room
+        // mid-broadcast must not fire an alert for an hours-old stream.
         const prevSet = new Set((state.previousLiveUids || []).map(Number));
         const prevCoverage = state.previousCoverage || { uids: [], following: false };
         const prevSeen = new Set((prevCoverage.uids || []).map(Number));
@@ -284,16 +321,18 @@ export async function runUpdateCycle(trigger) {
         else if (newlyStreaming.some(uid => streamerStates[uid] === 'like')) badgeColorType = 'like';
         await updateBadge(newlyStreaming.length, badgeColorType);
 
+        // Persist before notifying. If the service worker is killed between the
+        // two, the next cycle re-runs the diff off the same baseline and rings
+        // the same batch again; persisting first makes the lost work a missed
+        // notification rather than a duplicated one.
+        await setState({ ...persistBase, newlyStreaming });
+        consecutiveRiskErrors = 0;
+
         // Desktop notifications use their own channel scope, from the same diff.
         const toNotify = justStarted.filter(
             s => inChannel(s, streamerStates, alertScope, AlertChannel.NOTIFY)
         );
         if (toNotify.length > 0) await sendLiveNotifications(toNotify, streamerStates);
-
-        // Persist only on success: a failed cycle must never overwrite the
-        // previous state and report everyone as offline (kept legacy design).
-        await setState({ ...persistBase, newlyStreaming });
-        consecutiveRiskErrors = 0;
 
         await pruneNotifRoomMap(new Set(currentLiveUids));
 
@@ -301,19 +340,13 @@ export async function runUpdateCycle(trigger) {
         return { ok: true, liveCount: currentLiveUids.length };
     } catch (error) {
         const lastError = classifyError(error);
-        const update = { lastError };
-        if (error instanceof BiliApiError && error.isRiskControl) {
-            consecutiveRiskErrors += 1;
-            // Exponential backoff: 5 -> 10 -> 20 -> 30 (cap) minutes
-            update.backoffUntil = Date.now()
-                + Math.min(BACKOFF_BASE_MS * 2 ** (consecutiveRiskErrors - 1), BACKOFF_MAX_MS);
-            // Re-seed when the pause ends: the world moved on while we were
-            // blind, and the stale baseline would read as a mass of new streams.
-            update.seedSignature = '';
-        }
         console.error(`Update cycle failed (${lastError}):`, error);
         try {
-            await setState(update);
+            if (error instanceof BiliApiError && error.isRiskControl) {
+                await applyRiskBackoff(lastError);
+            } else {
+                await setState({ lastError });
+            }
             await showErrorBadge();
         } catch (e) {
             console.error('Failed to persist error state:', e);

@@ -3,7 +3,7 @@
 import { escapeHtml, t } from '../shared/i18n.js';
 import { mergeStreamers } from '../shared/merge.js';
 import { setState } from '../shared/storage.js';
-import { ViewMode } from '../shared/constants.js';
+import { ViewMode, SNAPSHOT_MAX_AGE_MS } from '../shared/constants.js';
 import { inViewMode } from '../shared/scope.js';
 import { handleHover, handleLeave } from './preview.js';
 
@@ -24,12 +24,14 @@ let contextTargetUid = null;
 function getKnownStreamers(state) {
     let primary = state.streamers;
 
-    if (state.viewMode === ViewMode.ALL) {
-        const snapshot = (state.followingCache && state.followingCache.list) || [];
-        if (snapshot.length > 0) {
-            const seen = new Set(primary.map(s => String(s.uid)));
-            primary = [...primary, ...snapshot.filter(s => !seen.has(String(s.uid)))];
-        }
+    // Folded in whenever it is fresh, regardless of the current view. Gating on
+    // viewMode made the per-source and per-mode counts disagree with what the
+    // grid would actually show once you switched.
+    const cache = state.followingCache;
+    const fresh = cache && Date.now() - (cache.fetchedAt || 0) <= SNAPSHOT_MAX_AGE_MS;
+    if (fresh && cache.list.length > 0) {
+        const seen = new Set(primary.map(s => String(s.uid)));
+        primary = [...primary, ...cache.list.filter(s => !seen.has(String(s.uid)))];
     }
 
     // Single merge source of truth (audit #8).

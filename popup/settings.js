@@ -6,12 +6,13 @@ import {
     ALERT_SOURCES,
     ALERT_CHANNELS,
     BATCH_UID_LIMIT,
-    FOLLOW_PAGE_ESTIMATE
+    FOLLOW_PAGE_ESTIMATE,
+    SNAPSHOT_MAX_AGE_MS
 } from '../shared/constants.js';
 import { getState, setState, importConfig, exportConfig } from '../shared/storage.js';
 import { escapeHtml, t } from '../shared/i18n.js';
 import { normalizeStreamer } from '../shared/merge.js';
-import { sourceOf, needsFollowing, watchedUids, channelSources } from '../shared/scope.js';
+import { sourceOf, needsFollowing, trackedUids, channelSources } from '../shared/scope.js';
 import { renderGrid, knownLiveStreamers } from './cards.js';
 import { updateIframeAudio } from './preview.js';
 
@@ -223,14 +224,22 @@ function sourceCounts(state) {
     for (const streamer of knownLiveStreamers(state)) {
         counts[sourceOf(streamer, state.states)] += 1;
     }
+    // Must agree with what cards.js actually folds into the grid, or the row
+    // shows a fabricated 0 for a population nobody fetched.
+    const cache = state.followingCache;
     const restKnown = needsFollowing(state.alertScope)
-        || (state.followingCache && state.followingCache.list.length > 0);
+        || Boolean(cache && cache.list.length > 0
+            && Date.now() - (cache.fetchedAt || 0) <= SNAPSHOT_MAX_AGE_MS);
     return { counts, restKnown };
 }
 
 /** Requests one refresh cycle will make under the current scope. */
 function cycleCost(state) {
-    const tracked = watchedUids(state.customStreamers, state.states, new Set());
+    // The medal wall rides the same batch, so it counts toward the chunking.
+    const medalUids = state.streamers
+        .filter(streamer => streamer.medalName != null)
+        .map(streamer => Number(streamer.uid));
+    const tracked = trackedUids(state.customStreamers, state.states, medalUids);
     const batches = Math.ceil(tracked.length / BATCH_UID_LIMIT);
     const paging = needsFollowing(state.alertScope);
     return {

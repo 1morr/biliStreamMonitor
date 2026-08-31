@@ -21,6 +21,13 @@ export const NOTIF_BATCH_LIMIT = 5;
 export const SNAPSHOT_MAX_AGE_MS = 10 * 60 * 1000;
 // Rough cost of one following page walk, for the settings request-count readout.
 export const FOLLOW_PAGE_ESTIMATE = 5;
+// A gap this long since the last successful cycle means the diff baseline is
+// stale — browser restarted, laptop slept, cookie expired for hours — and the
+// next cycle must seed instead of announcing everything that happened while we
+// were blind. Scaled off the refresh interval, floored so a couple of missed
+// alarms never trip it.
+export const STALE_BASELINE_CYCLES = 5;
+export const MIN_STALE_BASELINE_MS = 5 * 60 * 1000;
 
 // Alert sources. Every streamer falls into exactly one bucket (see
 // shared/scope.js sourceOf), so per-source counts can simply be summed.
@@ -87,6 +94,8 @@ export const STORAGE_DEFAULTS = Object.freeze({
     // means "seed silently this cycle" (first install, sources changed, or a
     // risk-control backoff that cleared it). See shared/scope.js scopeSignature.
     seedSignature: '',
+    // When the last cycle actually completed. Drives the staleness check above.
+    lastSuccessAt: 0,
     // On-demand following snapshot for the 'all' view. Never feeds the diff.
     followingCache: { fetchedAt: 0, list: [] },
     refreshInterval: DEFAULT_REFRESH_INTERVAL,

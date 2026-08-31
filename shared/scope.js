@@ -116,24 +116,33 @@ export function scopeSignature(alertScope) {
 }
 
 /**
- * Uids that need a batched status lookup: manually added rooms plus every
- * marked streamer, minus whatever the medal wall already covered.
+ * Every uid the batched status lookup should cover: the medal wall, custom
+ * rooms, and everything marked.
+ *
+ * The medal wall is included even though MedalWall already reported its live
+ * status, because MedalWall returns no room title, cover or area — without the
+ * batch, a medal-bucket desktop notification would have an empty body. Under
+ * the 200-uid limit this stays a single request either way.
+ *
  * @param {Array} customStreamers
  * @param {Object} streamerStates {uid: 'favorite'|'like'}
- * @param {Set<number>} coveredUids uids already carrying a fresh status
+ * @param {Iterable<number>} [medalUids]
+ * @returns {number[]}
  */
-export function watchedUids(customStreamers, streamerStates, coveredUids) {
+export function trackedUids(customStreamers, streamerStates, medalUids = []) {
     const uids = new Set();
+    for (const uid of medalUids) {
+        const n = Number(uid);
+        if (Number.isFinite(n)) uids.add(n);
+    }
     for (const entry of customStreamers || []) {
         const uid = Number(entry && entry.uid);
-        if (Number.isFinite(uid) && !coveredUids.has(uid)) uids.add(uid);
+        if (Number.isFinite(uid)) uids.add(uid);
     }
     for (const [key, mark] of Object.entries(streamerStates || {})) {
         if (mark !== 'favorite' && mark !== 'like') continue;
         const uid = Number(key);
-        if (Number.isFinite(uid) && !coveredUids.has(uid)) uids.add(uid);
+        if (Number.isFinite(uid)) uids.add(uid);
     }
     return [...uids];
 }
-
-export { AlertSource, AlertChannel, ViewMode };

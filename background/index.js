@@ -43,8 +43,8 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
         return true; // async response: keep the port open
     }
 
-    // Popup asking for the "all" view's data. Writes followingCache only;
-    // never touches the diff state the badge is computed from.
+    // Popup asking for the "all" view's data. On success it writes
+    // followingCache only; a risk-control failure shares the cycle's backoff.
     if (action === 'fetchFollowing') {
         fetchFollowingSnapshot()
             .then(result => sendResponse(result))
