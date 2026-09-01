@@ -51,6 +51,12 @@ export const AlertChannel = Object.freeze({
 
 export const ALERT_CHANNELS = Object.freeze(Object.values(AlertChannel));
 
+// The popup's hover-preview mode (persisted as previewMode).
+export const PreviewMode = Object.freeze({
+    LIVE: 'live',
+    THUMBNAIL: 'thumbnail'
+});
+
 // Popup display modes (persisted as viewMode).
 export const ViewMode = Object.freeze({
     ALERT: 'alert',   // union of both channels' subscribed sources (default)
@@ -73,6 +79,21 @@ export const DEFAULT_ALERT_SCOPE = Object.freeze({
 });
 
 export { sourceSet };
+
+// Numeric ranges for the appearance sliders, mirrored by the min/max
+// attributes on the range inputs in popup/popup.html. There is no build step
+// to derive one from the other, so keep them in sync by hand; this is also
+// the single place shared/storage.js clamps an imported appearance object to.
+export const APPEARANCE_RANGES = Object.freeze({
+    width: { min: 300, max: 800 },
+    height: { min: 300, max: 600 },
+    avatarSize: { min: 30, max: 120 },
+    gapX: { min: 0, max: 30 },
+    gapY: { min: 0, max: 30 },
+    cardPaddingX: { min: 0, max: 30 },
+    cardPaddingY: { min: 0, max: 30 },
+    fontSize: { min: 10, max: 16 }
+});
 
 // Full chrome.storage.local key set with defaults.
 // Note: mutable defaults (arrays/objects) must be cloned by consumers.
@@ -99,12 +120,18 @@ export const STORAGE_DEFAULTS = Object.freeze({
     // On-demand following snapshot for the 'all' view. Never feeds the diff.
     followingCache: { fetchedAt: 0, list: [] },
     refreshInterval: DEFAULT_REFRESH_INTERVAL,
-    previewMode: 'thumbnail',
+    previewMode: PreviewMode.THUMBNAIL,
     previewSound: false,
     previewVolume: 50,
     appearance: {},
     lastError: null,
     backoffUntil: 0,
+    // Consecutive risk-control failures since the last success. Persisted
+    // (not module-level) because MV3 recycles the service worker well inside
+    // the >=5 minute backoff window; without this the exponential escalation
+    // (5 -> 10 -> 20 -> 30 min, background/poller.js applyRiskBackoff) could
+    // never advance past its first step. Reset to 0 on every successful cycle.
+    consecutiveRiskErrors: 0,
     notifRoomMap: {}
 });
 

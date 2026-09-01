@@ -8,7 +8,6 @@
 import {
     AlertSource,
     ALERT_SOURCES,
-    AlertChannel,
     ALERT_CHANNELS,
     ViewMode,
     sourceSet

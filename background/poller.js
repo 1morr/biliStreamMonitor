@@ -20,10 +20,15 @@ import { mergeStreamers, normalizeStreamer } from '../shared/merge.js';
 import { inChannel, needsFollowing, scopeSignature, trackedUids } from '../shared/scope.js';
 import { sendLiveNotifications, pruneNotifRoomMap } from './notify.js';
 
-// Module-level guards. Both are lost on SW restart; that is acceptable because
-// backoffUntil itself is persisted, so the actual pause survives restarts.
-let cycleInFlight = false;       // re-entrancy guard (audit #1: concurrent cycles double-notify)
-let consecutiveRiskErrors = 0;   // risk-control backoff exponent, reset on success
+// Module-level re-entrancy guard. Lost on SW restart; that is acceptable
+// because backoffUntil itself is persisted, so the actual pause survives
+// restarts. The risk-control error counter is deliberately NOT kept here:
+// MV3 recycles the service worker after ~30s idle, well inside the >=5
+// minute backoff window, so a module-level counter would always read back 0
+// on the next error and the 5 -> 10 -> 20 -> 30 escalation could never
+// advance past its first step. It is persisted instead (see
+// applyRiskBackoff and shared/constants.js consecutiveRiskErrors).
+let cycleInFlight = false; // re-entrancy guard (audit #1: concurrent cycles double-notify)
 
 /** Update the badge counter. Color priority: favorite (red) > like (orange) > normal (blue). */
 async function updateBadge(count, colorType = 'normal') {
@@ -52,14 +57,20 @@ function classifyError(error) {
     return 'network';
 }
 
-/** Persist a risk-control pause and force the next live cycle to re-seed. */
+/**
+ * Persist a risk-control pause and force the next live cycle to re-seed.
+ * Reads the previous count back from storage rather than a module-level
+ * variable — see the comment on cycleInFlight above.
+ */
 async function applyRiskBackoff(lastError) {
-    consecutiveRiskErrors += 1;
+    const { consecutiveRiskErrors } = await getState(['consecutiveRiskErrors']);
+    const count = (Number(consecutiveRiskErrors) || 0) + 1;
     await setState({
         lastError,
+        consecutiveRiskErrors: count,
         // Exponential backoff: 5 -> 10 -> 20 -> 30 (cap) minutes
         backoffUntil: Date.now()
-            + Math.min(BACKOFF_BASE_MS * 2 ** (consecutiveRiskErrors - 1), BACKOFF_MAX_MS),
+            + Math.min(BACKOFF_BASE_MS * 2 ** (count - 1), BACKOFF_MAX_MS),
         // The world moved on while we were paused; a stale baseline would read
         // as a mass of new streams.
         seedSignature: ''
@@ -138,9 +149,11 @@ async function fetchScope(alertScope, customStreamers, streamerStates) {
     }
 
     // 4. Custom entries are updated in place and persisted by the caller.
+    const customUidSet = new Set();
     for (const entry of customStreamers) {
         const uid = Number(entry.uid);
         if (!Number.isFinite(uid)) continue;
+        customUidSet.add(uid);
         const info = statusMap.get(uid);
         if (info) {
             entry.roomId = info.roomId;
@@ -155,9 +168,17 @@ async function fetchScope(alertScope, customStreamers, streamerStates) {
         }
     }
 
-    // 5. Marked streamers not covered above get a standalone entry, live or not.
+    // 5. Marked streamers not covered above get a standalone entry, live or
+    //    not. Custom uids are skipped here on purpose: pushing them through
+    //    normalizeStreamer() directly would drop isCustom (not one of its
+    //    accepted raw field names) and, worse, mark them `seen` so
+    //    mergeStreamers' own dedupe never gets a chance to fold in the real
+    //    customStreamers entry step 4 just refreshed. Leaving them out here
+    //    lets mergeStreamers (called by the caller) supply that entry, with
+    //    isCustom forced true, from the up-to-date copy.
     for (const uid of tracked) {
         if (seen.has(uid)) continue;
+        if (customUidSet.has(uid)) continue;
         const info = statusMap.get(uid);
         if (!info) continue;
         primary.push(normalizeStreamer({ uid, ...info }));
@@ -280,9 +301,13 @@ export async function runUpdateCycle(trigger) {
         const baselineAge = Date.now() - (state.lastSuccessAt || 0);
 
         if (signature !== state.seedSignature || baselineAge > staleAfter) {
-            await setState({ ...persistBase, newlyStreaming: [], seedSignature: signature });
+            await setState({
+                ...persistBase,
+                newlyStreaming: [],
+                seedSignature: signature,
+                consecutiveRiskErrors: 0
+            });
             await updateBadge(0);
-            consecutiveRiskErrors = 0;
             await pruneNotifRoomMap(new Set(currentLiveUids));
             chrome.runtime.sendMessage({ type: 'streamersUpdated' }).catch(() => {});
             return { ok: true, liveCount: currentLiveUids.length, seeded: true };
@@ -325,8 +350,7 @@ export async function runUpdateCycle(trigger) {
         // two, the next cycle re-runs the diff off the same baseline and rings
         // the same batch again; persisting first makes the lost work a missed
         // notification rather than a duplicated one.
-        await setState({ ...persistBase, newlyStreaming });
-        consecutiveRiskErrors = 0;
+        await setState({ ...persistBase, newlyStreaming, consecutiveRiskErrors: 0 });
 
         // Desktop notifications use their own channel scope, from the same diff.
         const toNotify = justStarted.filter(
