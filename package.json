@@ -1,0 +1,16 @@
+{
+  "name": "bilistreammonitor",
+  "version": "4.0.0",
+  "private": true,
+  "description": "Monitor Bilibili live status for your medal wall, custom rooms and marked streamers.",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "test": "node --test tests/scope.test.mjs",
+    "screenshots": "node scripts/screenshots.mjs . docs/images"
+  },
+  "devDependencies": {
+    "eslint": "^10.9.1",
+    "playwright": "^1.62.1"
+  }
+}

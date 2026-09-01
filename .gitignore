@@ -3,3 +3,13 @@
 
 # Design canvas build output; re-seed it from the .dc.html sources instead
 docs/design-v4/bili-monitor-alert-scope.html
+
+node_modules/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.zip
+*.crx
+*.pem
+.impeccable/
