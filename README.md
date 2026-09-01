@@ -107,7 +107,7 @@ npm test         # node --test over the pure modules in shared/
 
 `shared/scope.js` is the single source of truth for which streamer belongs to
 which alert source; the poller, the notifier and the popup all read it, and it
-is what the tests cover. More detail in [docs/](docs/).
+is what the tests cover. More detail in [docs/](docs/) (Traditional Chinese).
 
 ## License
 
