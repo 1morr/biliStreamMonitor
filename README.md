@@ -1,182 +1,114 @@
-# BiliStreamMonitor (B站直播关注助手)
+# BiliStreamMonitor
 
-BiliStreamMonitor 是一个 Chrome 浏览器扩展，用于监控你关注的 Bilibili 主播的直播状态。它能让你在不打开 B 站的情况下，实时掌握关注主播的开播动态，并提供快捷访问、桌面通知和悬浮预览功能。
+Know when the Bilibili streamers you care about go live, without opening the site.
 
-v4.0 起，扩展改用**提醒范围**模型：角标与桌面通知只覆盖你真正在意的人——勋章墙主播、手动添加的房间、以及被你标记为「特别关注 / 喜欢」的主播。旧版的「监控模式」开关已移除，抓取计划直接由提醒范围推导：默认每周期仅 2 次请求，只有勾选「其他全部关注」才会翻页抓取完整关注列表。
+<p>
+  <a href="https://github.com/1morr/biliStreamMonitor/actions/workflows/ci.yml"><img src="https://github.com/1morr/biliStreamMonitor/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/1morr/biliStreamMonitor" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/Chrome-120%2B-4285F4" alt="Chrome 120+">
+</p>
 
-## ✨ 主要功能
+**English** · [繁體中文](README.zh-Hant.md)
 
-*   **提醒范围（来源 × 通道）**：五个来源（勋章墙主播 / 手动添加房间 / 特别关注 / 喜欢 / 其他全部关注）分别决定是否触发**角标**与**桌面通知**，两个通道各自独立订阅。设置面板实时显示各通道覆盖人数与每周期请求数。
-*   **四种显示模式**：鼠标悬停右下角设置按钮，向左展开显示模式切换——提醒范围（默认）/ 勋章墙 / 打标 / 全部直播。
-*   **角标提醒**：扩展图标上的数字角标显示提醒范围内的新开播主播数，按优先级着色（特别关注红 > 喜欢橙 > 普通蓝），超过 99 显示 `99+`。
-*   **开播通知**：主播开播时发送浏览器桌面通知，点击通知直达直播间；单周期最多 5 条，其余合并为一条「另有 N 人开播」。
-*   **静默播种**：首次安装、改动提醒范围、风控退避结束后的第一个周期只同步状态，不补发任何提醒——角标不会一次跳出三位数。
-*   **悬浮预览**：鼠标悬停在主播头像上，即可预览直播间标题、封面图与已开播时长；也可切换为实时迷你播放器（支持音量控制）。
-*   **个性化分组**：右键菜单将主播标记为“特别关注 (Favorite)”或“喜欢 (Like)”，或将其隐藏。
-*   **自定义房间**：监控未关注的主播——在设置面板中粘贴房间号即可添加，状态通过批量 API 一次刷新。
-*   **高度自定义**：
-    *   可调整弹窗宽高、头像大小、间距、内边距、字体大小等外观设置。
-    *   支持深色/浅色主题切换。
-    *   自定义刷新间隔（30 秒起，默认 60 秒）。
-    *   角标与桌面通知在同一张「来源 × 通道」矩阵中各自勾选，任意组合皆可表达（例如角标看得宽、通知只留特别关注）。
-*   **数据导入/导出**：备份或迁移你的个性化配置（导入经白名单与类型校验）。
-*   **多语言界面**：支持 English / 简体中文 / 繁體中文，自动跟随浏览器语言。
-*   **风控保护**：触发 B 站风控时自动指数退避（5→30 分钟），并通过角标与错误横幅明确提示，恢复后自动回到正常周期。
+A Chrome extension that watches your followed streamers and puts a count on the
+toolbar icon when someone you care about starts broadcasting. Hover an avatar to
+preview the stream; click to open it.
 
-## 🖼️ 程序截图
+![Popup](docs/images/popup.png)
 
-<img width="626" height="688" alt="程序截图" src="https://github.com/user-attachments/assets/933b3e4d-b00b-4152-bd23-d1b929dafc28" />
+## Install
 
-<img width="626" height="688" alt="设置截图" src="https://github.com/user-attachments/assets/d99c6dca-9f3b-430d-8676-97d4bc0a7d4b" />
+Not on the Chrome Web Store yet, so load it unpacked:
 
-## 🚀 如何安装
+1. Download or clone this repository.
+2. Open `chrome://extensions/` and turn on **Developer mode**.
+3. Click **Load unpacked** and select the folder containing `manifest.json`.
 
-**前置需求**：请先在 Chrome 浏览器中登录 [Bilibili](https://www.bilibili.com)。扩展依赖登录后的 `DedeUserID` Cookie 来获取你的账号信息与关注列表。
+There is no build step — the source is the extension. You need **Chrome 120 or
+later** (earlier versions silently clamp the refresh interval to 60 s) and you
+must be **logged in to Bilibili** in the same profile; the extension reads your
+`DedeUserID` cookie to find your follow list.
 
-由于本扩展尚未发布到 Chrome 网上应用店，你需要通过“加载已解压的扩展程序”来安装：
+## Alert scope
 
-1.  下载本项目的源代码到本地。
-2.  打开 Chrome 浏览器，进入扩展程序管理页面 (`chrome://extensions/`)。
-3.  开启右上角的 **“开发者模式”**。
-4.  点击左上角的 **“加载已解压的扩展程序”**。
-5.  选择包含 `manifest.json` 文件的项目文件夹 (`biliStreamMonitor`)。
+The point of the extension is that "who I follow" and "who I want to be
+interrupted for" are different sets. You pick the second one.
 
-## 📖 使用指南
+Five sources feed two independent channels — the **badge** on the toolbar icon
+and **desktop notifications**. Tick each cell you want:
 
-### 1. 初始化
-安装完成后，点击浏览器工具栏上的 BiliStreamMonitor 图标。扩展会自动检测你的 Bilibili 登录状态并开始第一个刷新周期。若 Cookie 过期，请重新登录 Bilibili——登录失效时扩展会以红色 `!` 角标和弹窗错误横幅提醒你（见第 8 节）。
+| Source | Who it is | Cost per cycle |
+|---|---|---|
+| Medal wall | Streamers you hold a fan medal for | 1 request, always fetched |
+| Custom rooms | Rooms you added by number, followed or not | shares 1 batch request |
+| Favorite / Like | Streamers you right-click-marked | free — their uids are already known |
+| All other follows | Everyone else you follow | about +5 requests (paged) |
 
-### 2. 设置提醒范围
-在设置面板的 **Alert Scope（提醒范围）** 中，为**角标**与**通知**两栏分别勾选来源：
+Each streamer counts in the **first** row it matches, so the numbers add up
+cleanly. The settings panel shows live per-channel totals and the resulting
+request count.
 
-| 来源 | 含义 | 抓取方式 |
-| --- | --- | --- |
-| 勋章墙主播 | 你拥有粉丝勋章的主播 | `MedalWall`，每周期 1 次，永远抓取（卡片的勋章名/等级也来自这里） |
-| 手动添加房间 | 未关注但想监控的直播间 | 批量接口，与下一项合并为 1 次请求 |
-| 特别关注 / 喜欢 | 你右键标记过的主播 | 同上——uid 已知，**无需翻页** |
-| 其他全部关注 | 其余关注的主播 | `following` 翻页，每周期约 +5 次请求 |
+The default is 2 requests per cycle, because "all other follows" is off. Turning
+it on is the only thing that makes the extension page your whole follow list.
 
-每位主播只计入**最先匹配**的一行（勋章墙 > 手动 > 特别关注 > 喜欢 > 其他），所以各行人数可以直接相加，底部的合计与请求数读数都是实时的。
+![Settings](docs/images/settings.png)
 
-默认不勾选「其他全部关注」，每周期 2 次请求。「关闭某个通道」= 把该栏全部取消勾选。改动提醒范围后的第一个周期只同步状态，不补发提醒。
+## Features
 
-### 3. 查看直播列表与切换显示模式
-点击扩展图标，弹窗以卡片网格显示主播。将鼠标移到**右下角的设置按钮**上，四个显示模式会向左横向展开（纯图标，名称与人数见悬停提示）：
+- **Badge** — how many streamers in scope just went live, coloured by priority
+  (favorite red, like orange, otherwise blue), capped at `99+`.
+- **Notifications** — click one to jump straight into the room. At most 5 per
+  cycle; the rest collapse into a single "N others went live".
+- **Silent seeding** — the first cycle after installing, after changing your
+  alert scope, or after a rate-limit pause only syncs state. It never fires a
+  backlog of alerts, so the badge cannot jump to three digits at once.
+- **Hover preview** — the stream title, cover and elapsed time, or a live mini
+  player with volume control.
+- **Four display modes** — hover the gear to fan them out: alert scope
+  (default), medal wall, marked only, or everything currently live.
+- **Right-click a streamer** to mark them Favorite or Like, or hide them.
+- **Custom rooms** — paste a room number or URL to watch someone you do not
+  follow. Their status refreshes in the same batch request as everyone else.
+- **Import / export** your configuration, validated key by key on the way in.
+- **English / 简体中文 / 繁體中文**, following the browser language.
+- **Rate-limit backoff** — when Bilibili pushes back, the extension pauses
+  5 → 10 → 20 → 30 minutes and says so on the badge and in the popup, then
+  resumes on its own.
 
-*   **提醒范围（默认）**：两栏勾选来源的**并集**——任一栏勾了就算。
-*   **勋章墙**：只看有粉丝勋章的主播。
-*   **打标**：只看标记过「特别关注 / 喜欢」的主播（不分来源，勋章墙里的打标主播也会出现）。
-*   **全部直播**：以上全部，加上其余正在直播的关注主播。未勾选「其他全部关注」时，进入这个模式会随选抓取一次关注列表并缓存一个刷新间隔；这次抓取**不会**影响角标或通知。
+## Permissions
 
-勋章墙、手动房间与打标主播即使**下播也会灰显**；仅来自关注列表的主播只在直播中才会出现。所有模式都排除“轮播/回放”状态，卡片排序一致（直播中 > 特别关注 > 喜欢 > 勋章等级）。
+| Permission | Why |
+|---|---|
+| `cookies` | Read `DedeUserID` to identify your account. Nothing else is read, stored, or sent |
+| `storage` | Your settings, marks, and the last known stream states |
+| `alarms` | Drive the refresh cycle (a service worker cannot hold a timer) |
+| `notifications` | The go-live notifications |
+| `*.bilibili.com` | The live API and the preview player |
+| `*.hdslb.com` | Avatars and stream covers |
 
-*   **点击头像**：直接跳转到该主播的直播间。
-*   **鼠标悬停**：查看直播预览（见第 6 节）。
+No `<all_urls>`, no analytics, no third-party requests. The content script runs
+on exactly one URL pattern, to keep the preview player in sync.
 
-### 4. 添加自定义房间
-想监控但未关注的主播，在设置面板 **Custom Rooms** 的输入框粘贴房间号（或直播间 URL）并点击 `+` 即可。自定义房间的直播状态每个周期通过批量接口（`get_status_info_by_uids`，每批 ≤200 个 uid）一次刷新，不产生逐房间的请求。已添加的房间可在同一清单中管理删除。
+## Configuration
 
-### 5. 右键菜单操作
-在主播头像上点击 **鼠标右键**：
-*   **设为特别关注 (Favorite)**：最高优先级，角标/通知可单独过滤，角标颜色为红色。
-*   **设为喜欢 (Like)**：次级优先级，角标颜色为橙色。
-*   **隐藏 (Hide)**：将该主播从列表中隐藏（可在设置的 Hidden List 中恢复）。
+Everything lives behind the gear in the popup: refresh interval (30 s minimum,
+60 s default), popup size, avatar size, spacing, font size, light/dark theme,
+preview mode, hidden list, and the alert-scope matrix.
 
-### 6. 悬浮预览
-悬停头像时的预览模式在设置中切换：
-*   `Thumbnail`：静态封面图预览（默认）。
-*   `Live Player`：实时迷你播放器预览直播画面，可开启声音并调节音量（默认静音，音量 50）。
+## Development
 
-### 7. 设置与个性化
-点击弹窗**右下角的悬浮齿轮按钮**进入设置面板（悬停该按钮会展开显示模式切换）：
-*   **Appearance（外观）**：主题、窗口宽高、头像大小、间距、内边距、字体大小、卡片背景，可一键重置。
-*   **Alert Scope（提醒范围）**：来源 × 通道矩阵（见第 2 节），底部实时显示两个通道各自的覆盖人数、并集人数与每周期请求数。
-*   **General（常规）**：
-    *   **Refresh Interval**：自动刷新间隔（秒），最小 30，默认 60。
-    *   **Preview Mode / Sound / Volume**：预览模式与音量设置。
-*   **Custom Rooms**：自定义房间添加与清单管理。
-*   **Hidden List**：管理已隐藏的主播，可恢复显示。
-*   **Export / Import**：导出或导入配置。导入仅接受白名单内的设置项并逐键校验（如刷新间隔自动钳制到 ≥30 秒）。
+No build, no bundler. Edit a file and hit reload on the extension card.
 
-### 8. 错误状态与风控退避
-*   **登录过期**：角标变为红色 `!`，弹窗顶部显示错误横幅，重新登录 B 站后自动恢复。
-*   **风控退避**：当 B 站返回风控信号（错误码 -412 / -352，或 `v_voucher` 验证响应）时，扩展自动暂停轮询并指数退避（5→10→20→30 分钟封顶），角标显示红色 `!`；退避结束且请求成功后自动回到正常周期。退避期间的手动刷新也会被跳过。
-*   **网络错误**：同样以横幅提示，单次失败不会误报“全部下播”。
-
-## 🛠️ 权限说明
-
-本扩展仅申请必要的权限以实现功能：
-*   `cookies`：读取 Bilibili 登录状态（`DedeUserID`），用于确定你的 uid。
-*   `storage`：在本地保存你的设置和主播状态。
-*   `alarms`：定时刷新直播状态（可唤醒休眠的 Service Worker）。
-*   `notifications`：发送开播桌面通知。
-*   `tabs`：点击通知时打开对应直播间标签页。
-*   `host_permissions` (`*.bilibili.com`, `*.hdslb.com`)：请求 Bilibili API 获取直播数据，以及加载主播头像与封面图。
-
-## 🔒 隐私与风险说明
-
-*   **只读操作**：扩展仅调用 Bilibili 的只读 GET 接口获取公开/本人数据，不执行任何写操作（不发弹幕、不点赞、不修改账号状态）。
-*   **数据不出本机**：所有配置与状态仅保存在 `chrome.storage.local`，不向任何第三方服务器发送数据。所有 API 请求均直接发往 `api.live.bilibili.com`。
-*   **调用量模型**：默认 60 秒周期、不勾选「其他全部关注」时，每周期 = 1 次勋章墙 + 1 次批量状态查询（自定义房间与打标主播合并，每批 ≤200 个 uid），约 2 次/分钟。勾选「其他全部关注」后额外增加关注列表翻页（实测 116 个直播中约 4–5 次），合计约 6–7 次/分钟；设置面板会实时显示这个数字。弹窗打开本身零 API 调用（只读本地存储），「全部直播」显示模式的随选抓取每次约 5 次请求并缓存一个刷新间隔。该量级远低于已知的 B 站风控触发区间（社区安全锚点为 30–60 秒轮询）。
-*   **残余风险**：B 站从未公布 QPS 上限。请勿将刷新间隔设置得过低并叠加大量自定义房间；扩展内置的指数退避会在触发风控时自动保护你的账号与 IP。
-
-## 🧑‍💻 开发者指南
-
-### 目录结构
-
-```
-manifest.json            MV3 清单（background 为 "type": "module"，default_locale=en）
-background/
-  index.js               Service Worker 入口：alarms、消息路由、通知点击注册
-  poller.js              刷新周期核心：抓取计划、合并、静默播种 / diff、角标、通知、退避
-  notify.js              通知创建 / 点击跳转映射 / 稳定 ID 去重
-popup/
-  popup.html / popup.css 弹窗页面与样式
-  index.js               入口、事件绑定
-  cards.js               卡片网格渲染
-  preview.js             悬停预览（缩略图 / 直播 iframe / 音量桥）
-  settings.js            设置面板、导入导出、自定义房间管理
-shared/
-  api.js                 Bilibili API 层（统一封装 + 风控/登录错误识别）
-  storage.js             storage 存取 + schemaVersion=3 迁移 + 导入白名单校验
-  constants.js           常量、storage 默认值、枚举（来源 / 通道 / 显示模式）
-  scope.js               来源分桶与范围判定（poller / notify / popup 的唯一数据源）
-  merge.js               主播列表合并（唯一数据源）
-  i18n.js                data-i18n 属性套用、chrome.i18n.getMessage 包装
-content_script.js        预览音量桥（注入直播播放器 iframe；content script 不支持 ES module，保持单文件）
-_locales/{en,zh_CN,zh_TW}/messages.json
-vendor/fontawesome/      Font Awesome 本地化资源（不依赖 CDN）
-images/                  扩展图标
-docs/                    设计文档与抓包证据（见下节）
+```bash
+npm install      # only to get eslint
+npm run lint
+npm test         # node --test over the pure modules in shared/
 ```
 
-### 构建与调试
+`shared/scope.js` is the single source of truth for which streamer belongs to
+which alert source; the poller, the notifier and the popup all read it, and it
+is what the tests cover. More detail in [docs/](docs/).
 
-*   **无构建工具**：项目为原生 ES modules（MV3 Service Worker 原生支持 static import，需 Chrome ≥89），源码即产物，直接 `chrome://extensions/` → “加载已解压的扩展程序”即可运行。
-*   **后台调试**：`chrome://extensions/` 中点击本扩展的 **Service Worker** 链接打开 DevTools，查看周期日志与错误。
-*   **弹窗调试**：在弹窗上右键 → “检查”打开 DevTools。
-*   修改代码后到 `chrome://extensions/` 点击扩展卡片上的刷新按钮重载。
+## License
 
-### 自动化加载（Chrome ≥137 注意）
-
-**Chrome 137 起已移除 `--load-extension` 命令行旗标**（本次重构验证中实测 Chrome 150 品牌版会静默忽略该旗标，扩展不会被加载且无任何报错）。自动化场景请改用：
-
-*   **CDP**：通过 DevTools 协议在 browser target 上调用 `Extensions.loadUnpacked`；或
-*   **Chrome for Testing**：仍支持 `--load-extension` 的专用构建。
-
-## 📚 项目文档
-
-`docs/` 目录保存了 v3.0 重构的完整依据：
-
-*   [`docs/api.md`](docs/api.md)：B 站直播 API 侦查报告——各端点行为、分页边界、风控错误码，全部基于真实抓包。
-*   [`docs/audit.md`](docs/audit.md)：重构前现状审计与风险评估——v3.0 修复清单的来源（含调用量模型推导）。
-*   [`docs/design.md`](docs/design.md)：v3.0 设计决策记录（含 v3.1 修订注记）——双模式、自定义房间批次化、i18n、目录结构等方案的选型过程。
-*   [`docs/evidence/`](docs/evidence/)：上述结论的原始抓包 JSON 证据。
-
-版本历史见 [CHANGELOG.md](CHANGELOG.md)。
-
-## 📝 注意事项
-
-*   本程序依赖 Bilibili 网页端的登录状态，如果 Cookie 过期，请重新登录 Bilibili（扩展会以红色 `!` 角标提示）。
-*   勋章墙模式下，只有你拥有粉丝勋章的主播才会出现在列表中；如需完整覆盖请切换到全关注模式。
-*   角标数字的语义是“自上次打开弹窗以来的新开播数”（按角标偏好过滤），而非当前直播中总数。
+[MIT](LICENSE)
