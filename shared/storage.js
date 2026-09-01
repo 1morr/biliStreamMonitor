@@ -4,9 +4,12 @@ import {
     STORAGE_DEFAULTS,
     MIN_REFRESH_INTERVAL,
     ViewMode,
+    PreviewMode,
+    APPEARANCE_RANGES,
     sourceSet
 } from './constants.js';
 import { normalizeAlertScope } from './scope.js';
+import { normalizeStreamer } from './merge.js';
 
 export const STORAGE_VERSION = 3;
 
@@ -27,7 +30,7 @@ const SETTINGS_KEYS = Object.freeze([
 
 // Legacy notification preference codes -> alert source sets (schema v2 -> v3).
 // '2' (ALL) deliberately does NOT map to every source: in the medal-wall era it
-// meant "everyone I monitor" (~90 people), and only drifted into "all 1769
+// meant "everyone I monitor" (~90 people), and only drifted into "all
 // follows" when v3.0 widened the population. Mapping it to the new default is
 // the faithful reading of the original intent, and is the behaviour change this
 // release exists to make. Called out in CHANGELOG 4.0.0.
@@ -159,13 +162,54 @@ function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
 
+/**
+ * Validate each element's shape, dropping malformed entries instead of
+ * rejecting the whole array. normalizeStreamer() already tolerates missing
+ * fields (defaults them), so the only thing that makes an entry unusable is
+ * a uid that cannot be read as a number.
+ */
+function sanitizeCustomStreamers(value) {
+    if (!Array.isArray(value)) return undefined;
+    return value
+        .map(normalizeStreamer)
+        .filter(s => s && Number.isFinite(s.uid));
+}
+
+/** Drop any mark that is not one of the two recognized values. */
+function sanitizeStreamerStates(value) {
+    if (!isPlainObject(value)) return undefined;
+    const out = {};
+    for (const [uid, mark] of Object.entries(value)) {
+        if (mark === 'favorite' || mark === 'like') out[uid] = mark;
+    }
+    return out;
+}
+
+/**
+ * Clamp every numeric field to the same range its slider enforces
+ * (APPEARANCE_RANGES, mirrored from popup/popup.html). A field that is
+ * present but not coercible to a finite number is dropped rather than
+ * clamped, so the read side falls back to DEFAULT_APPEARANCE for it.
+ */
+function sanitizeAppearance(value) {
+    if (!isPlainObject(value)) return undefined;
+    const out = { ...value };
+    for (const [key, { min, max }] of Object.entries(APPEARANCE_RANGES)) {
+        if (!(key in out)) continue;
+        const n = Number(out[key]);
+        if (Number.isFinite(n)) out[key] = Math.min(max, Math.max(min, n));
+        else delete out[key];
+    }
+    return out;
+}
+
 /** Validate and normalize one imported value; undefined = rejected. */
 function sanitizeImportValue(key, value) {
     switch (key) {
         case 'customStreamers':
-            return Array.isArray(value) ? value : undefined;
+            return sanitizeCustomStreamers(value);
         case 'streamerStates':
-            return isPlainObject(value) ? value : undefined;
+            return sanitizeStreamerStates(value);
         case 'deletedStreamers':
             return Array.isArray(value) ? value.map(Number).filter(Number.isFinite) : undefined;
         case 'alertScope':
@@ -178,7 +222,7 @@ function sanitizeImportValue(key, value) {
             return Number.isFinite(n) ? Math.max(MIN_REFRESH_INTERVAL, n) : undefined;
         }
         case 'previewMode':
-            return typeof value === 'string' ? value : undefined;
+            return Object.values(PreviewMode).includes(value) ? value : undefined;
         case 'previewSound':
             return typeof value === 'boolean' ? value : undefined;
         case 'previewVolume': {
@@ -186,7 +230,7 @@ function sanitizeImportValue(key, value) {
             return Number.isFinite(n) ? n : undefined;
         }
         case 'appearance':
-            return isPlainObject(value) ? value : undefined;
+            return sanitizeAppearance(value);
         default:
             return undefined;
     }

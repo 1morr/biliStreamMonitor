@@ -233,10 +233,15 @@ function updateTooltipPosition(targetEl, state) {
  */
 export function updateIframeAudio(state) {
     if (previewIframe && !previewIframe.classList.contains('hidden') && previewIframe.src) {
+        // Targeted at the iframe's own origin (LIVE_PLAYER_URL), not '*': a
+        // wildcard target would still hand the message to whatever page the
+        // iframe happens to be navigated to. content_script.js independently
+        // checks event.origin against this extension's own origin (the
+        // origin this message is actually sent FROM) before acting on it.
         previewIframe.contentWindow.postMessage({
             type: 'BSM_UPDATE_VOLUME',
             muted: !state.previewSound,
             volume: state.previewVolume / 100
-        }, '*');
+        }, 'https://www.bilibili.com');
     }
 }

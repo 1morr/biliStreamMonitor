@@ -13,7 +13,10 @@ const FOLLOW_LIVE_URL = 'https://link.bilibili.com/p/center/index#/user-center/f
 async function fetchImageAsDataURL(url) {
     try {
         if (url.startsWith('http:')) url = url.replace('http:', 'https:');
-        const response = await fetch(url, { credentials: 'include', referrerPolicy: 'no-referrer' });
+        // Avatars are served from the hdslb CDN, not an authenticated
+        // endpoint; sending Bilibili cookies along with the image request is
+        // unnecessary exposure.
+        const response = await fetch(url, { credentials: 'omit', referrerPolicy: 'no-referrer' });
         if (!response.ok) throw new Error(`Image fetch failed: ${response.status}`);
         const blob = await response.blob();
         return await new Promise((resolve, reject) => {

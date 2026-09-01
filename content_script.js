@@ -15,7 +15,15 @@ function applySettings() {
     }
 }
 
+// event.origin on a received postMessage is always the SENDER's origin, i.e.
+// this extension's own popup (chrome-extension://<id>) — not bilibili.com,
+// which is only the *target* origin popup/preview.js posts to. Any other
+// origin embedded in/around this page must not be able to remotely
+// unmute/change volume.
+const EXTENSION_ORIGIN = `chrome-extension://${chrome.runtime.id}`;
+
 window.addEventListener('message', (event) => {
+    if (event.origin !== EXTENSION_ORIGIN) return;
     if (event.data && event.data.type === 'BSM_UPDATE_VOLUME') {
         currentMuted = event.data.muted;
         currentVolume = event.data.volume;

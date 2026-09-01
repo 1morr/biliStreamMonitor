@@ -49,8 +49,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     initContextMenu(State, onScopeChanged);
     setupSettings(State, { onImported: loadData, onScopeChanged });
 
-    // Always clear the badge when the popup is opened
-    chrome.action.setBadgeText({ text: '' });
+    // Clear the badge when the popup is opened, but not when it is showing
+    // the red '!' set by showErrorBadge (background/poller.js) -- a
+    // persisted error should stay visible until the error actually clears.
+    const { lastError } = await getState('lastError');
+    if (!lastError) chrome.action.setBadgeText({ text: '' });
     if (State.newlyStreaming.length > 0) {
         setState({ newlyStreaming: [] });
     }
@@ -154,9 +157,10 @@ function bindRefreshButton(btn, withText) {
     if (!btn) return;
     btn.onclick = async () => {
         const original = btn.innerHTML;
+        const spinner = '<svg class="icon icon-spin" aria-hidden="true"><use href="#icon-spinner"></use></svg>';
         btn.innerHTML = withText
-            ? `<i class="fas fa-spinner fa-spin"></i> ${escapeHtml(t('refreshing'))}`
-            : '<i class="fas fa-spinner fa-spin"></i>';
+            ? `${spinner} ${escapeHtml(t('refreshing'))}`
+            : spinner;
         btn.disabled = true;
         // The background answers this message after the cycle finishes.
         await chrome.runtime.sendMessage({ type: 'updateStreamers' }).catch(() => {});
