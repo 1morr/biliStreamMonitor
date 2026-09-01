@@ -155,7 +155,7 @@ export function renderCustomRoomList(state) {
                 <div class="custom-room-name">${escapeHtml(s.uname)}</div>
                 <div class="custom-room-id">${escapeHtml(t('roomFallbackName', [String(s.roomId)]))}</div>
             </div>
-            <button class="btn-remove-custom" data-uid="${escapeHtml(s.uid)}" title="${escapeHtml(t('remove'))}"><i class="fas fa-times"></i></button>
+            <button class="btn-remove-custom" data-uid="${escapeHtml(s.uid)}" title="${escapeHtml(t('remove'))}"><svg class="icon" aria-hidden="true"><use href="#icon-times"></use></svg></button>
         </div>`;
     }).join('');
 
@@ -191,7 +191,7 @@ function renderDeletedList(state) {
             <div class="deleted-item">
                 <img src="${escapeHtml(face)}" referrerpolicy="no-referrer" alt="">
                 <span>${escapeHtml(info.uname)}</span>
-                <button class="restore-btn" data-uid="${escapeHtml(uid)}"><i class="fas fa-undo"></i></button>
+                <button class="restore-btn" data-uid="${escapeHtml(uid)}"><svg class="icon" aria-hidden="true"><use href="#icon-undo"></use></svg></button>
             </div>
         `;
     }).join('');

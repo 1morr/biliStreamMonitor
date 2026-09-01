@@ -82,9 +82,9 @@ function createCardHTML(s, state) {
 
     let badgeHTML = '';
     if (mark === 'favorite') {
-        badgeHTML = '<div class="avatar-badge fav"><i class="fas fa-heart"></i></div>';
+        badgeHTML = '<div class="avatar-badge fav"><svg class="icon" aria-hidden="true"><use href="#icon-heart"></use></svg></div>';
     } else if (mark === 'like') {
-        badgeHTML = '<div class="avatar-badge like"><i class="fas fa-star"></i></div>';
+        badgeHTML = '<div class="avatar-badge like"><svg class="icon" aria-hidden="true"><use href="#icon-star"></use></svg></div>';
     }
 
     // Every interpolated value is escaped (audit #12); the avatar opts out of
@@ -125,7 +125,7 @@ export function renderGrid(state) {
     if (visibleStreamers.length === 0) {
         gridContainer.innerHTML = `
             <div class="loading-state">
-                <i class="fab fa-bilibili" style="font-size: 32px; margin-bottom: 10px; opacity:0.5;"></i>
+                <svg class="icon" aria-hidden="true" style="font-size: 32px; margin-bottom: 10px; opacity:0.5;"><use href="#icon-bilibili"></use></svg>
                 <p>${escapeHtml(t('noStreamersInView'))}</p>
             </div>`;
         return;
@@ -172,7 +172,7 @@ function showContextMenu(e, uid, state) {
     }
 
     let x = e.clientX;
-    let y = e.clientY;
+    const y = e.clientY;
     const menuWidth = 140;
     if (x + menuWidth > state.appearance.width) x = state.appearance.width - menuWidth - 10;
 

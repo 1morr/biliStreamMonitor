@@ -102,6 +102,19 @@ body {
     transition: width 0.05s ease, height 0.05s ease, background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Inline SVG icon sprite (popup.html <symbol> defs), replacing FontAwesome
+   <i class="fas fa-x">. Mirrors the font-icon behavior it replaces: sized in
+   em so it tracks font-size, colored via currentColor so it tracks color. */
+.icon {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    fill: currentColor;
+    vertical-align: -0.125em;
+    overflow: visible;
+}
+.icon.icon-spin { animation: spin 1s linear infinite; }
+
 /* Background orbs */
 .background-orb { position: absolute; border-radius: 50%; filter: blur(60px); z-index: -1; opacity: 0.6; transition: opacity 0.3s; }
 .orb-1 { top: -50px; left: -50px; width: 200px; height: 200px; background: #e0f2ff; }
@@ -119,7 +132,7 @@ body {
     border-bottom: 1px solid var(--border-color);
 }
 .error-banner.hidden { display: none; }
-.error-banner > i { flex-shrink: 0; }
+.error-banner > .icon { flex-shrink: 0; }
 .error-banner span { flex: 1; line-height: 1.4; min-width: 0; }
 /* auth / risk: warning red */
 .error-banner.severity-high { background: rgba(255, 59, 48, 0.12); color: var(--accent-red); }
@@ -327,7 +340,7 @@ body {
 .mx-head th { padding-bottom: 9px; font-size: 11px; font-weight: 600; color: var(--text-secondary); }
 .mx-head th.mx-col { width: 52px; }
 .mx-colwrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.mx-colwrap i { font-size: 12px; }
+.mx-colwrap .icon { font-size: 12px; }
 .mx-row td { padding: 7px 0; border-top: 1px solid var(--border-color); }
 .mx-row:first-of-type td { border-top: none; }
 .mx-name { display: flex; align-items: center; gap: 8px; font-size: 13px; }
@@ -349,11 +362,11 @@ body {
     color: #fff; font-size: 11px; cursor: pointer; padding: 0;
     transition: background 0.15s, border-color 0.15s;
 }
-.cbox i { opacity: 0; }
+.cbox .icon { opacity: 0; }
 .cbox:hover { border-color: var(--accent-blue); }
 .cbox.on { background: var(--accent-blue); border-color: var(--accent-blue); }
 .cbox.on.warm { background: var(--bilibili-pink); border-color: var(--bilibili-pink); }
-.cbox.on i { opacity: 1; }
+.cbox.on .icon { opacity: 1; }
 
 .mx-foot {
     display: flex; align-items: center; gap: 8px;
@@ -425,7 +438,7 @@ input[type=range]:active::-webkit-slider-thumb { transform: scale(1.1); backgrou
 /* Toggles and Selects */
 .select-wrapper { position: relative; }
 .select-wrapper select { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); appearance: none; -webkit-appearance: none; color: var(--text-primary); }
-.select-wrapper i { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none; font-size: 12px; }
+.select-wrapper .icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none; font-size: 12px; }
 .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; }
 .switch { position: relative; display: inline-block; width: 44px; height: 26px; }
 .switch input { opacity: 0; width: 0; height: 0; }
@@ -496,9 +509,9 @@ input:checked + .slider:before { transform: translateX(18px); }
 .glass-menu { position: fixed; background: var(--menu-bg); backdrop-filter: blur(20px); border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); padding: 6px; min-width: 130px; z-index: 300; border: 1px solid var(--border-color); }
 .glass-menu.hidden { display: none; }
 .menu-item { padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
-.menu-item.active i { color: var(--accent-blue); }
-.menu-item[data-action="favorite"].active i { color: var(--accent-red); }
-.menu-item[data-action="like"].active i { color: var(--accent-orange); }
+.menu-item.active .icon { color: var(--accent-blue); }
+.menu-item[data-action="favorite"].active .icon { color: var(--accent-red); }
+.menu-item[data-action="like"].active .icon { color: var(--accent-orange); }
 .menu-item:hover { background: var(--accent-blue); color: white; }
 .menu-item.danger:hover { background: var(--accent-red); }
 .menu-divider { height: 1px; background: var(--menu-divider); margin: 4px 0; }

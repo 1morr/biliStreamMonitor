@@ -4,10 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-i18n="extName"></title>
-    <link rel="stylesheet" href="../vendor/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="popup.css">
 </head>
 <body>
+    <!-- Icon sprite: replaces vendor/fontawesome (1MB of CSS + 6 font files
+         for the 22 solid + 1 brand glyphs actually used here). Hidden but
+         still referenceable by <use> elsewhere in this document -- an
+         inline <symbol> block, not an external icons.svg, sidesteps the
+         cross-origin restrictions some extension contexts place on
+         <use href="external.svg#id">.
+         Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com
+         License - https://fontawesome.com/license/free
+         (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
+         Copyright 2023 Fonticons, Inc. -->
+    <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+        <symbol id="icon-arrow-left" viewBox="0 0 448 512"><path d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></symbol>
+        <symbol id="icon-bell" viewBox="0 0 448 512"><path d="M224 0c-17.7 0-32 14.3-32 32V51.2C119 66 64 130.6 64 208v18.8c0 47-17.3 92.4-48.5 127.6l-7.4 8.3c-8.4 9.4-10.4 22.9-5.3 34.4S19.4 416 32 416H416c12.6 0 24-7.4 29.2-18.9s3.1-25-5.3-34.4l-7.4-8.3C401.3 319.2 384 273.9 384 226.8V208c0-77.4-55-142-128-156.8V32c0-17.7-14.3-32-32-32zm45.3 493.3c12-12 18.7-28.3 18.7-45.3H224 160c0 17 6.7 33.3 18.7 45.3s28.3 18.7 45.3 18.7s33.3-6.7 45.3-18.7z"/></symbol>
+        <symbol id="icon-check" viewBox="0 0 448 512"><path d="M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3l-256 256c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L160 338.7 393.4 105.4c12.5-12.5 32.8-12.5 45.3 0z"/></symbol>
+        <symbol id="icon-chevron-down" viewBox="0 0 512 512"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"/></symbol>
+        <symbol id="icon-cog" viewBox="0 0 512 512"><path d="M495.9 166.6c3.2 8.7 .5 18.4-6.4 24.6l-43.3 39.4c1.1 8.3 1.7 16.8 1.7 25.4s-.6 17.1-1.7 25.4l43.3 39.4c6.9 6.2 9.6 15.9 6.4 24.6c-4.4 11.9-9.7 23.3-15.8 34.3l-4.7 8.1c-6.6 11-14 21.4-22.1 31.2c-5.9 7.2-15.7 9.6-24.5 6.8l-55.7-17.7c-13.4 10.3-28.2 18.9-44 25.4l-12.5 57.1c-2 9.1-9 16.3-18.2 17.8c-13.8 2.3-28 3.5-42.5 3.5s-28.7-1.2-42.5-3.5c-9.2-1.5-16.2-8.7-18.2-17.8l-12.5-57.1c-15.8-6.5-30.6-15.1-44-25.4L83.1 425.9c-8.8 2.8-18.6 .3-24.5-6.8c-8.1-9.8-15.5-20.2-22.1-31.2l-4.7-8.1c-6.1-11-11.4-22.4-15.8-34.3c-3.2-8.7-.5-18.4 6.4-24.6l43.3-39.4C64.6 273.1 64 264.6 64 256s.6-17.1 1.7-25.4L22.4 191.2c-6.9-6.2-9.6-15.9-6.4-24.6c4.4-11.9 9.7-23.3 15.8-34.3l4.7-8.1c6.6-11 14-21.4 22.1-31.2c5.9-7.2 15.7-9.6 24.5-6.8l55.7 17.7c13.4-10.3 28.2-18.9 44-25.4l12.5-57.1c2-9.1 9-16.3 18.2-17.8C227.3 1.2 241.5 0 256 0s28.7 1.2 42.5 3.5c9.2 1.5 16.2 8.7 18.2 17.8l12.5 57.1c15.8 6.5 30.6 15.1 44 25.4l55.7-17.7c8.8-2.8 18.6-.3 24.5 6.8c8.1 9.8 15.5 20.2 22.1 31.2l4.7 8.1c6.1 11 11.4 22.4 15.8 34.3zM256 336a80 80 0 1 0 0-160 80 80 0 1 0 0 160z"/></symbol>
+        <symbol id="icon-download" viewBox="0 0 512 512"><path d="M288 32c0-17.7-14.3-32-32-32s-32 14.3-32 32V274.7l-73.4-73.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l128 128c12.5 12.5 32.8 12.5 45.3 0l128-128c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L288 274.7V32zM64 352c-35.3 0-64 28.7-64 64v32c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V416c0-35.3-28.7-64-64-64H346.5l-45.3 45.3c-25 25-65.5 25-90.5 0L165.5 352H64zm368 56a24 24 0 1 1 0 48 24 24 0 1 1 0-48z"/></symbol>
+        <symbol id="icon-exclamation-triangle" viewBox="0 0 512 512"><path d="M256 32c14.2 0 27.3 7.5 34.5 19.8l216 368c7.3 12.4 7.3 27.7 .2 40.1S486.3 480 472 480H40c-14.3 0-27.6-7.7-34.7-20.1s-7-27.8 .2-40.1l216-368C228.7 39.5 241.8 32 256 32zm0 128c-13.3 0-24 10.7-24 24V296c0 13.3 10.7 24 24 24s24-10.7 24-24V184c0-13.3-10.7-24-24-24zm32 224a32 32 0 1 0 -64 0 32 32 0 1 0 64 0z"/></symbol>
+        <symbol id="icon-eye-slash" viewBox="0 0 640 512"><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c8.4-19.3 10.6-41.4 4.8-63.3c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zM373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5L373 389.9z"/></symbol>
+        <symbol id="icon-heart" viewBox="0 0 512 512"><path d="M47.6 300.4L228.3 469.1c7.5 7 17.4 10.9 27.7 10.9s20.2-3.9 27.7-10.9L464.4 300.4c30.4-28.3 47.6-68 47.6-109.5v-5.8c0-69.9-50.5-129.5-119.4-141C347 36.5 300.6 51.4 268 84L256 96 244 84c-32.6-32.6-79-47.5-124.6-39.9C50.5 55.6 0 115.2 0 185.1v5.8c0 41.5 17.2 81.2 47.6 109.5z"/></symbol>
+        <symbol id="icon-medal" viewBox="0 0 512 512"><path d="M4.1 38.2C1.4 34.2 0 29.4 0 24.6C0 11 11 0 24.6 0H133.9c11.2 0 21.7 5.9 27.4 15.5l68.5 114.1c-48.2 6.1-91.3 28.6-123.4 61.9L4.1 38.2zm503.7 0L405.6 191.5c-32.1-33.3-75.2-55.8-123.4-61.9L350.7 15.5C356.5 5.9 366.9 0 378.1 0H487.4C501 0 512 11 512 24.6c0 4.8-1.4 9.6-4.1 13.6zM80 336a176 176 0 1 1 352 0A176 176 0 1 1 80 336zm184.4-94.9c-3.4-7-13.3-7-16.8 0l-22.4 45.4c-1.4 2.8-4 4.7-7 5.1L168 298.9c-7.7 1.1-10.7 10.5-5.2 16l36.3 35.4c2.2 2.2 3.2 5.2 2.7 8.3l-8.6 49.9c-1.3 7.6 6.7 13.5 13.6 9.9l44.8-23.6c2.7-1.4 6-1.4 8.7 0l44.8 23.6c6.9 3.6 14.9-2.2 13.6-9.9l-8.6-49.9c-.5-3 .5-6.1 2.7-8.3l36.3-35.4c5.6-5.4 2.5-14.8-5.2-16l-50.1-7.3c-3-.4-5.7-2.4-7-5.1l-22.4-45.4z"/></symbol>
+        <symbol id="icon-paint-brush" viewBox="0 0 576 512"><path d="M339.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L568.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S517.7-4.4 499.1 9.6L262.4 187.2c-24 18-38.2 46.1-38.4 76.1L339.3 367.1zm-19.6 25.4l-116-104.4C143.9 290.3 96 339.6 96 400c0 3.9 .2 7.8 .6 11.6C98.4 429.1 86.4 448 68.8 448H64c-17.7 0-32 14.3-32 32s14.3 32 32 32H208c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></symbol>
+        <symbol id="icon-plus" viewBox="0 0 448 512"><path d="M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32V224H48c-17.7 0-32 14.3-32 32s14.3 32 32 32H192V432c0 17.7 14.3 32 32 32s32-14.3 32-32V288H400c17.7 0 32-14.3 32-32s-14.3-32-32-32H256V80z"/></symbol>
+        <symbol id="icon-plus-circle" viewBox="0 0 512 512"><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM232 344V280H168c-13.3 0-24-10.7-24-24s10.7-24 24-24h64V168c0-13.3 10.7-24 24-24s24 10.7 24 24v64h64c13.3 0 24 10.7 24 24s-10.7 24-24 24H280v64c0 13.3-10.7 24-24 24s-24-10.7-24-24z"/></symbol>
+        <symbol id="icon-sliders-h" viewBox="0 0 512 512"><path d="M0 416c0 17.7 14.3 32 32 32l54.7 0c12.3 28.3 40.5 48 73.3 48s61-19.7 73.3-48L480 448c17.7 0 32-14.3 32-32s-14.3-32-32-32l-246.7 0c-12.3-28.3-40.5-48-73.3-48s-61 19.7-73.3 48L32 384c-17.7 0-32 14.3-32 32zm128 0a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zM320 256a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zm32-80c-32.8 0-61 19.7-73.3 48L32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l246.7 0c12.3 28.3 40.5 48 73.3 48s61-19.7 73.3-48l54.7 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-54.7 0c-12.3-28.3-40.5-48-73.3-48zM192 128a32 32 0 1 1 0-64 32 32 0 1 1 0 64zm73.3-64C253 35.7 224.8 16 192 16s-61 19.7-73.3 48L32 64C14.3 64 0 78.3 0 96s14.3 32 32 32l86.7 0c12.3 28.3 40.5 48 73.3 48s61-19.7 73.3-48L480 128c17.7 0 32-14.3 32-32s-14.3-32-32-32L265.3 64z"/></symbol>
+        <symbol id="icon-spinner" viewBox="0 0 512 512"><path d="M304 48a48 48 0 1 0 -96 0 48 48 0 1 0 96 0zm0 416a48 48 0 1 0 -96 0 48 48 0 1 0 96 0zM48 304a48 48 0 1 0 0-96 48 48 0 1 0 0 96zm464-48a48 48 0 1 0 -96 0 48 48 0 1 0 96 0zM142.9 437A48 48 0 1 0 75 369.1 48 48 0 1 0 142.9 437zm0-294.2A48 48 0 1 0 75 75a48 48 0 1 0 67.9 67.9zM369.1 437A48 48 0 1 0 437 369.1 48 48 0 1 0 369.1 437z"/></symbol>
+        <symbol id="icon-square" viewBox="0 0 448 512"><path d="M0 96C0 60.7 28.7 32 64 32H384c35.3 0 64 28.7 64 64V416c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V96z"/></symbol>
+        <symbol id="icon-star" viewBox="0 0 576 512"><path d="M316.9 18C311.6 7 300.4 0 288.1 0s-23.4 7-28.8 18L195 150.3 51.4 171.5c-12 1.8-22 10.2-25.7 21.7s-.7 24.2 7.9 32.7L137.8 329 113.2 474.7c-2 12 3 24.2 12.9 31.3s23 8 33.8 2.3l128.3-68.5 128.3 68.5c10.8 5.7 23.9 4.9 33.8-2.3s14.9-19.3 12.9-31.3L438.5 329 542.7 225.9c8.6-8.5 11.7-21.2 7.9-32.7s-13.7-19.9-25.7-21.7L381.2 150.3 316.9 18z"/></symbol>
+        <symbol id="icon-sync-alt" viewBox="0 0 512 512"><path d="M142.9 142.9c62.2-62.2 162.7-62.5 225.3-1L327 183c-6.9 6.9-8.9 17.2-5.2 26.2s12.5 14.8 22.2 14.8H463.5c0 0 0 0 0 0H472c13.3 0 24-10.7 24-24V72c0-9.7-5.8-18.5-14.8-22.2s-19.3-1.7-26.2 5.2L413.4 96.6c-87.6-86.5-228.7-86.2-315.8 1C73.2 122 55.6 150.7 44.8 181.4c-5.9 16.7 2.9 34.9 19.5 40.8s34.9-2.9 40.8-19.5c7.7-21.8 20.2-42.3 37.8-59.8zM16 312v7.6 .7V440c0 9.7 5.8 18.5 14.8 22.2s19.3 1.7 26.2-5.2l41.6-41.6c87.6 86.5 228.7 86.2 315.8-1c24.4-24.4 42.1-53.1 52.9-83.7c5.9-16.7-2.9-34.9-19.5-40.8s-34.9 2.9-40.8 19.5c-7.7 21.8-20.2 42.3-37.8 59.8c-62.2 62.2-162.7 62.5-225.3 1L185 329c6.9-6.9 8.9-17.2 5.2-26.2s-12.5-14.8-22.2-14.8H48.4h-.7H40c-13.3 0-24 10.7-24 24z"/></symbol>
+        <symbol id="icon-times" viewBox="0 0 384 512"><path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></symbol>
+        <symbol id="icon-undo" viewBox="0 0 512 512"><path d="M125.7 160H176c17.7 0 32 14.3 32 32s-14.3 32-32 32H48c-17.7 0-32-14.3-32-32V64c0-17.7 14.3-32 32-32s32 14.3 32 32v51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"/></symbol>
+        <symbol id="icon-upload" viewBox="0 0 512 512"><path d="M288 109.3V352c0 17.7-14.3 32-32 32s-32-14.3-32-32V109.3l-73.4 73.4c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3l128-128c12.5-12.5 32.8-12.5 45.3 0l128 128c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L288 109.3zM64 352H192c0 35.3 28.7 64 64 64s64-28.7 64-64H448c35.3 0 64 28.7 64 64v32c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V416c0-35.3 28.7-64 64-64zM432 456a24 24 0 1 0 0-48 24 24 0 1 0 0 48z"/></symbol>
+        <symbol id="icon-users" viewBox="0 0 640 512"><path d="M144 0a80 80 0 1 1 0 160A80 80 0 1 1 144 0zM512 0a80 80 0 1 1 0 160A80 80 0 1 1 512 0zM0 298.7C0 239.8 47.8 192 106.7 192h42.7c15.9 0 31 3.5 44.6 9.7c-1.3 7.2-1.9 14.7-1.9 22.3c0 38.2 16.8 72.5 43.3 96c-.2 0-.4 0-.7 0H21.3C9.6 320 0 310.4 0 298.7zM405.3 320c-.2 0-.4 0-.7 0c26.6-23.5 43.3-57.8 43.3-96c0-7.6-.7-15-1.9-22.3c13.6-6.3 28.7-9.7 44.6-9.7h42.7C592.2 192 640 239.8 640 298.7c0 11.8-9.6 21.3-21.3 21.3H405.3zM224 224a96 96 0 1 1 192 0 96 96 0 1 1 -192 0zM128 485.3C128 411.7 187.7 352 261.3 352H378.7C452.3 352 512 411.7 512 485.3c0 14.7-11.9 26.7-26.7 26.7H154.7c-14.7 0-26.7-11.9-26.7-26.7z"/></symbol>
+        <symbol id="icon-bilibili" viewBox="0 0 512 512"><path d="M488.6 104.1C505.3 122.2 513 143.8 511.9 169.8V372.2C511.5 398.6 502.7 420.3 485.4 437.3C468.2 454.3 446.3 463.2 419.9 464H92.02C65.57 463.2 43.81 454.2 26.74 436.8C9.682 419.4 .7667 396.5 0 368.2V169.8C.7667 143.8 9.682 122.2 26.74 104.1C43.81 87.75 65.57 78.77 92.02 78H121.4L96.05 52.19C90.3 46.46 87.42 39.19 87.42 30.4C87.42 21.6 90.3 14.34 96.05 8.603C101.8 2.868 109.1 0 117.9 0C126.7 0 134 2.868 139.8 8.603L213.1 78H301.1L375.6 8.603C381.7 2.868 389.2 0 398 0C406.8 0 414.1 2.868 419.9 8.603C425.6 14.34 428.5 21.6 428.5 30.4C428.5 39.19 425.6 46.46 419.9 52.19L394.6 78L423.9 78C450.3 78.77 471.9 87.75 488.6 104.1H488.6zM449.8 173.8C449.4 164.2 446.1 156.4 439.1 150.3C433.9 144.2 425.1 140.9 416.4 140.5H96.05C86.46 140.9 78.6 144.2 72.47 150.3C66.33 156.4 63.07 164.2 62.69 173.8V368.2C62.69 377.4 65.95 385.2 72.47 391.7C78.99 398.2 86.85 401.5 96.05 401.5H416.4C425.6 401.5 433.4 398.2 439.7 391.7C446 385.2 449.4 377.4 449.8 368.2L449.8 173.8zM185.5 216.5C191.8 222.8 195.2 230.6 195.6 239.7V273C195.2 282.2 191.9 289.9 185.8 296.2C179.6 302.5 171.8 305.7 162.2 305.7C152.6 305.7 144.7 302.5 138.6 296.2C132.5 289.9 129.2 282.2 128.8 273V239.7C129.2 230.6 132.6 222.8 138.9 216.5C145.2 210.2 152.1 206.9 162.2 206.5C171.4 206.9 179.2 210.2 185.5 216.5H185.5zM377 216.5C383.3 222.8 386.7 230.6 387.1 239.7V273C386.7 282.2 383.4 289.9 377.3 296.2C371.2 302.5 363.3 305.7 353.7 305.7C344.1 305.7 336.3 302.5 330.1 296.2C323.1 289.9 320.7 282.2 320.4 273V239.7C320.7 230.6 324.1 222.8 330.4 216.5C336.7 210.2 344.5 206.9 353.7 206.5C362.9 206.9 370.7 210.2 377 216.5H377z"/></symbol>
+    </svg>
+
     <!-- Background orbs -->
     <div class="background-orb orb-1"></div>
     <div class="background-orb orb-2"></div>
@@ -16,9 +51,9 @@
     <div class="app-container">
         <!-- Error banner (auth / risk / network), hidden by default -->
         <div id="error-banner" class="error-banner hidden" role="alert">
-            <i class="fas fa-exclamation-triangle"></i>
+            <svg class="icon" aria-hidden="true"><use href="#icon-exclamation-triangle"></use></svg>
             <span id="error-banner-text"></span>
-            <button id="error-banner-close" class="error-banner-close" data-i18n-title="dismiss"><i class="fas fa-times"></i></button>
+            <button id="error-banner-close" class="error-banner-close" data-i18n-title="dismiss"><svg class="icon" aria-hidden="true"><use href="#icon-times"></use></svg></button>
         </div>
 
         <!-- Card grid -->
@@ -34,12 +69,12 @@
              nearest the cursor that just opened it. -->
         <div class="fab-container" id="fab-container">
             <div class="fab-dial" id="fab-dial">
-                <button class="floating-btn fab-mini" data-view="all"><i class="fas fa-users"></i></button>
-                <button class="floating-btn fab-mini" data-view="mark"><i class="fas fa-heart"></i></button>
-                <button class="floating-btn fab-mini" data-view="medal"><i class="fas fa-medal"></i></button>
-                <button class="floating-btn fab-mini" data-view="alert"><i class="fas fa-bell"></i></button>
+                <button class="floating-btn fab-mini" data-view="all"><svg class="icon" aria-hidden="true"><use href="#icon-users"></use></svg></button>
+                <button class="floating-btn fab-mini" data-view="mark"><svg class="icon" aria-hidden="true"><use href="#icon-heart"></use></svg></button>
+                <button class="floating-btn fab-mini" data-view="medal"><svg class="icon" aria-hidden="true"><use href="#icon-medal"></use></svg></button>
+                <button class="floating-btn fab-mini" data-view="alert"><svg class="icon" aria-hidden="true"><use href="#icon-bell"></use></svg></button>
             </div>
-            <button id="fab-settings" class="floating-btn" data-i18n-title="settingsTitle"><i class="fas fa-cog"></i></button>
+            <button id="fab-settings" class="floating-btn" data-i18n-title="settingsTitle"><svg class="icon" aria-hidden="true"><use href="#icon-cog"></use></svg></button>
         </div>
 
         <!-- Settings panel (overlay) -->
@@ -47,7 +82,7 @@
             <div class="settings-card glass-panel">
                 <div class="settings-header">
                     <h3 data-i18n="settingsTitle"></h3>
-                    <button id="btn-close-settings" class="icon-btn close-btn"><i class="fas fa-times"></i></button>
+                    <button id="btn-close-settings" class="icon-btn close-btn"><svg class="icon" aria-hidden="true"><use href="#icon-times"></use></svg></button>
                 </div>
 
                 <div class="settings-body">
@@ -56,10 +91,10 @@
                     <div class="accordion-wrapper">
                         <button id="btn-toggle-appearance" class="accordion-header">
                             <div class="header-left">
-                                <div class="icon-box"><i class="fas fa-paint-brush"></i></div>
+                                <div class="icon-box"><svg class="icon" aria-hidden="true"><use href="#icon-paint-brush"></use></svg></div>
                                 <span data-i18n="appearance"></span>
                             </div>
-                            <i class="fas fa-chevron-down arrow-icon"></i>
+                            <svg class="icon arrow-icon" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
                         </button>
 
                         <div id="appearance-content" class="accordion-content">
@@ -72,7 +107,7 @@
                                             <option value="light" data-i18n="themeLight"></option>
                                             <option value="dark" data-i18n="themeDark"></option>
                                         </select>
-                                        <i class="fas fa-chevron-down"></i>
+                                        <svg class="icon" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
                                     </div>
                                 </div>
 
@@ -168,7 +203,7 @@
                          decide what gets fetched, so there is no second switch
                          that can silently void this one. -->
                     <div class="section-title">
-                        <div class="icon-box" style="background: var(--accent-blue);"><i class="fas fa-bell"></i></div>
+                        <div class="icon-box" style="background: var(--accent-blue);"><svg class="icon" aria-hidden="true"><use href="#icon-bell"></use></svg></div>
                         <span data-i18n="alertScope"></span>
                     </div>
 
@@ -176,13 +211,13 @@
                         <table class="scope-matrix">
                             <tr class="mx-head">
                                 <th></th>
-                                <th class="mx-col"><span class="mx-colwrap"><i class="fas fa-square"></i><span data-i18n="channelBadge"></span></span></th>
-                                <th class="mx-col"><span class="mx-colwrap"><i class="fas fa-bell"></i><span data-i18n="channelNotify"></span></span></th>
+                                <th class="mx-col"><span class="mx-colwrap"><svg class="icon" aria-hidden="true"><use href="#icon-square"></use></svg><span data-i18n="channelBadge"></span></span></th>
+                                <th class="mx-col"><span class="mx-colwrap"><svg class="icon" aria-hidden="true"><use href="#icon-bell"></use></svg><span data-i18n="channelNotify"></span></span></th>
                             </tr>
                             <tr class="mx-row">
                                 <td>
                                     <div class="mx-name">
-                                        <span class="mx-glyph src-medal"><i class="fas fa-medal"></i></span>
+                                        <span class="mx-glyph src-medal"><svg class="icon" aria-hidden="true"><use href="#icon-medal"></use></svg></span>
                                         <span class="mx-text">
                                             <span class="mx-line">
                                                 <span data-i18n="sourceMedal"></span>
@@ -191,13 +226,13 @@
                                         </span>
                                     </div>
                                 </td>
-                                <td><div class="mx-cell"><button class="cbox" id="chk-badge-medal" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
-                                <td><div class="mx-cell"><button class="cbox warm" id="chk-notify-medal" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
+                                <td><div class="mx-cell"><button class="cbox" id="chk-badge-medal" role="checkbox" aria-checked="false"><svg class="icon" aria-hidden="true"><use href="#icon-check"></use></svg></button></div></td>
+                                <td><div class="mx-cell"><button class="cbox warm" id="chk-notify-medal" role="checkbox" aria-checked="false"><svg class="icon" aria-hidden="true"><use href="#icon-check"></use></svg></button></div></td>
                             </tr>
                             <tr class="mx-row">
                                 <td>
                                     <div class="mx-name">
-                                        <span class="mx-glyph src-custom"><i class="fas fa-plus-circle"></i></span>
+                                        <span class="mx-glyph src-custom"><svg class="icon" aria-hidden="true"><use href="#icon-plus-circle"></use></svg></span>
                                         <span class="mx-text">
                                             <span class="mx-line">
                                                 <span data-i18n="sourceCustom"></span>
@@ -206,13 +241,13 @@
                                         </span>
                                     </div>
                                 </td>
-                                <td><div class="mx-cell"><button class="cbox" id="chk-badge-custom" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
-                                <td><div class="mx-cell"><button class="cbox warm" id="chk-notify-custom" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
+                                <td><div class="mx-cell"><button class="cbox" id="chk-badge-custom" role="checkbox" aria-checked="false"><svg class="icon" aria-hidden="true"><use href="#icon-check"></use></svg></button></div></td>
+                                <td><div class="mx-cell"><button class="cbox warm" id="chk-notify-custom" role="checkbox" aria-checked="false"><svg class="icon" aria-hidden="true"><use href="#icon-check"></use></svg></button></div></td>
                             </tr>
                             <tr class="mx-row">
                                 <td>
                                     <div class="mx-name">
-                                        <span class="mx-glyph src-fav"><i class="fas fa-heart"></i></span>
+                                        <span class="mx-glyph src-fav"><svg class="icon" aria-hidden="true"><use href="#icon-heart"></use></svg></span>
                                         <span class="mx-text">
                                             <span class="mx-line">
                                                 <span data-i18n="sourceFav"></span>
@@ -221,13 +256,13 @@
                                         </span>
                                     </div>
                                 </td>
-                                <td><div class="mx-cell"><button class="cbox" id="chk-badge-fav" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
-                                <td><div class="mx-cell"><button class="cbox warm" id="chk-notify-fav" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
+                                <td><div class="mx-cell"><button class="cbox" id="chk-badge-fav" role="checkbox" aria-checked="false"><svg class="icon" aria-hidden="true"><use href="#icon-check"></use></svg></button></div></td>
+                                <td><div class="mx-cell"><button class="cbox warm" id="chk-notify-fav" role="checkbox" aria-checked="false"><svg class="icon" aria-hidden="true"><use href="#icon-check"></use></svg></button></div></td>
                             </tr>
                             <tr class="mx-row">
                                 <td>
                                     <div class="mx-name">
-                                        <span class="mx-glyph src-like"><i class="fas fa-star"></i></span>
+                                        <span class="mx-glyph src-like"><svg class="icon" aria-hidden="true"><use href="#icon-star"></use></svg></span>
                                         <span class="mx-text">
                                             <span class="mx-line">
                                                 <span data-i18n="sourceLike"></span>
@@ -236,13 +271,13 @@
                                         </span>
                                     </div>
                                 </td>
-                                <td><div class="mx-cell"><button class="cbox" id="chk-badge-like" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
-                                <td><div class="mx-cell"><button class="cbox warm" id="chk-notify-like" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
+                                <td><div class="mx-cell"><button class="cbox" id="chk-badge-like" role="checkbox" aria-checked="false"><svg class="icon" aria-hidden="true"><use href="#icon-check"></use></svg></button></div></td>
+                                <td><div class="mx-cell"><button class="cbox warm" id="chk-notify-like" role="checkbox" aria-checked="false"><svg class="icon" aria-hidden="true"><use href="#icon-check"></use></svg></button></div></td>
                             </tr>
                             <tr class="mx-row">
                                 <td>
                                     <div class="mx-name">
-                                        <span class="mx-glyph src-rest"><i class="fas fa-users"></i></span>
+                                        <span class="mx-glyph src-rest"><svg class="icon" aria-hidden="true"><use href="#icon-users"></use></svg></span>
                                         <span class="mx-text">
                                             <span class="mx-line">
                                                 <span data-i18n="sourceRest"></span>
@@ -252,8 +287,8 @@
                                         </span>
                                     </div>
                                 </td>
-                                <td><div class="mx-cell"><button class="cbox" id="chk-badge-rest" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
-                                <td><div class="mx-cell"><button class="cbox warm" id="chk-notify-rest" role="checkbox" aria-checked="false"><i class="fas fa-check"></i></button></div></td>
+                                <td><div class="mx-cell"><button class="cbox" id="chk-badge-rest" role="checkbox" aria-checked="false"><svg class="icon" aria-hidden="true"><use href="#icon-check"></use></svg></button></div></td>
+                                <td><div class="mx-cell"><button class="cbox warm" id="chk-notify-rest" role="checkbox" aria-checked="false"><svg class="icon" aria-hidden="true"><use href="#icon-check"></use></svg></button></div></td>
                             </tr>
                         </table>
 
@@ -271,7 +306,7 @@
                     <div class="spacer"></div>
 
                     <div class="section-title">
-                        <div class="icon-box"><i class="fas fa-sliders-h"></i></div>
+                        <div class="icon-box"><svg class="icon" aria-hidden="true"><use href="#icon-sliders-h"></use></svg></div>
                         <span data-i18n="general"></span>
                     </div>
 
@@ -288,7 +323,7 @@
                                     <option value="thumbnail" data-i18n="previewThumbnail"></option>
                                     <option value="live" data-i18n="previewLive"></option>
                                 </select>
-                                <i class="fas fa-chevron-down"></i>
+                                <svg class="icon" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
                             </div>
                         </div>
 
@@ -317,10 +352,10 @@
                     <div class="accordion-wrapper" id="accordion-custom-rooms">
                         <button id="btn-toggle-custom-rooms" class="accordion-header">
                             <div class="header-left">
-                                <div class="icon-box" style="background: var(--bilibili-pink);"><i class="fas fa-plus-circle"></i></div>
+                                <div class="icon-box" style="background: var(--bilibili-pink);"><svg class="icon" aria-hidden="true"><use href="#icon-plus-circle"></use></svg></div>
                                 <span data-i18n="customRooms"></span>
                             </div>
-                            <i class="fas fa-chevron-down arrow-icon"></i>
+                            <svg class="icon arrow-icon" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
                         </button>
 
                         <div id="custom-rooms-content" class="accordion-content">
@@ -329,7 +364,7 @@
                                     <label data-i18n="addRoom"></label>
                                     <div class="custom-room-input-row">
                                         <input type="text" id="input-add-room" class="styled-input" data-i18n-placeholder="addRoomPlaceholder">
-                                        <button id="btn-add-room" class="btn primary btn-add-room" data-i18n-title="addRoom"><i class="fas fa-plus"></i></button>
+                                        <button id="btn-add-room" class="btn primary btn-add-room" data-i18n-title="addRoom"><svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg></button>
                                     </div>
                                     <div id="add-room-status" class="custom-room-status hidden"></div>
                                 </div>
@@ -343,8 +378,8 @@
                     <div class="settings-actions">
                         <button id="btn-deleted" class="btn secondary" data-i18n="hiddenList"></button>
                         <div class="file-ops">
-                            <button id="btn-export" class="btn icon-only" data-i18n-title="exportSettings"><i class="fas fa-upload"></i></button>
-                            <button id="btn-import" class="btn icon-only" data-i18n-title="importSettings"><i class="fas fa-download"></i></button>
+                            <button id="btn-export" class="btn icon-only" data-i18n-title="exportSettings"><svg class="icon" aria-hidden="true"><use href="#icon-upload"></use></svg></button>
+                            <button id="btn-import" class="btn icon-only" data-i18n-title="importSettings"><svg class="icon" aria-hidden="true"><use href="#icon-download"></use></svg></button>
                             <input type="file" id="file-import" accept=".json" hidden>
                         </div>
                     </div>
@@ -353,7 +388,7 @@
 
                     <!-- Manual refresh -->
                     <button id="btn-manual-refresh" class="btn primary full-width">
-                        <i class="fas fa-sync-alt"></i> <span data-i18n="refreshData"></span>
+                        <svg class="icon" aria-hidden="true"><use href="#icon-sync-alt"></use></svg> <span data-i18n="refreshData"></span>
                     </button>
                 </div>
             </div>
@@ -364,7 +399,7 @@
             <div class="settings-card glass-panel">
                 <div class="settings-header">
                     <h3 data-i18n="hiddenStreamers"></h3>
-                    <button id="btn-close-deleted" class="icon-btn close-btn"><i class="fas fa-arrow-left"></i></button>
+                    <button id="btn-close-deleted" class="icon-btn close-btn"><svg class="icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg></button>
                 </div>
                 <div id="deleted-list" class="deleted-list-container"></div>
             </div>
@@ -386,10 +421,10 @@
 
     <!-- Context menu -->
     <div id="context-menu" class="glass-menu hidden">
-        <div class="menu-item" data-action="favorite"><i class="fas fa-heart"></i> <span data-i18n="favorite"></span></div>
-        <div class="menu-item" data-action="like"><i class="fas fa-star"></i> <span data-i18n="like"></span></div>
+        <div class="menu-item" data-action="favorite"><svg class="icon" aria-hidden="true"><use href="#icon-heart"></use></svg> <span data-i18n="favorite"></span></div>
+        <div class="menu-item" data-action="like"><svg class="icon" aria-hidden="true"><use href="#icon-star"></use></svg> <span data-i18n="like"></span></div>
         <div class="menu-divider"></div>
-        <div class="menu-item danger" data-action="hide"><i class="fas fa-eye-slash"></i> <span data-i18n="hide"></span></div>
+        <div class="menu-item danger" data-action="hide"><svg class="icon" aria-hidden="true"><use href="#icon-eye-slash"></use></svg> <span data-i18n="hide"></span></div>
     </div>
 
     <script type="module" src="index.js"></script>
