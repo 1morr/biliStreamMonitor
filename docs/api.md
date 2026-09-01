@@ -1,8 +1,8 @@
 # BiliStreamMonitor — Bilibili 直播 API 偵查報告（階段 0）
 
 - 偵查日期：2026-07-29（UTC）
-- 方法：chrome-devtools 實際抓包（已登入帳號 uid=a-test-account）＋ 公開文件庫交叉比對
-- 證據目錄：`docs/evidence/`（所有原始回應 JSON）
+- 方法：chrome-devtools 實際抓包（一個已登入的測試帳號）＋ 公開文件庫交叉比對
+- 本文只記錄端點的**形狀與上限**。原始回應含真人 uid、暱稱與勳章名，不隨 repo 發布。
 - 文件來源：SocialSisterYi/bilibili-API-collect 已於 2026-01-30 因律師函封存刪文，本文件引用刪除前最後同步的 fork 鏡像（xrkorz/bilibili-API-collect，2026-01-28）
 - **衝突時以抓包為準**（本文有兩處文件與實測不符，皆已標註）
 
@@ -25,12 +25,11 @@
 
 完整關注列表（link.bilibili.com 個人中心「我的關注」頁實際使用）。**全關注模式的核心端點。**
 
-- 證據：`docs/evidence/follow_feed.json`、`follow_feed_pagination_probe.json`
 - Query：`page`（1 起）、`page_size`、`ignoreRecord=1`、`hit_ab=true`
 - 認證：僅 cookie（無 wbi）；未登入回 `code=-101`
 - 回應（`data`）：
-  - `count: int` 關注總數（實測 1769）
-  - `live_count: int` 直播中數（實測 116）
+  - `count: int` 關注總數（實測約 1.8k）
+  - `live_count: int` 直播中數（實測約 120）
   - `never_lived_count: int`
   - `pageSize / totalPage: int`（pageSize 回顯實際生效值）
   - `list[]`：`roomid:int`、`uid:int`、`uname`、`title`、`face`、`live_status:int`、`room_cover`、`room_news`、`area_name_v2`、`parent_area_id`、`area_id`、`text_small`、`is_attention`
@@ -40,7 +39,7 @@
 - 文件稱 page_size「有效值 1–10」；**實測 1–29 生效，≥30 被靜默夾回 10**（回應 `pageSize` 可驗證）。有效上限 = **29**。
 - 越界頁（page=999）回 `code=0` + 空 list，不報錯。
 - 排序：**live_status=1（直播中）排最前**，之後 0/2 混合。
-- 載全策略：只要直播中者 → `page_size=29` 翻頁直到某頁無 `live_status=1` 即止（實測 116 直播中 ≈ 4–5 頁/週期）；載全部 1769 關注需 61 頁，無必要。
+- 載全策略：只要直播中者 → `page_size=29` 翻頁直到某頁無 `live_status=1` 即止（約 120 人直播中 ≈ 4–5 頁/週期）；載全部關注需 60+ 頁，無必要。
 
 ### live_status 語意（三態）
 
@@ -49,9 +48,8 @@
 
 ## 1b. `GET https://api.live.bilibili.com/xlive/web-interface/v1/index/getList`
 
-直播首頁聚合接口。關注模組（`module_info.type=8`）的 `list[]` **只有 6 張卡片**；「N 人正在直播中」數字在同模組 `extra.follow_Online`（實測 115）。只能當計數器，不能拿名單。
+直播首頁聚合接口。關注模組（`module_info.type=8`）的 `list[]` **只有 6 張卡片**；「N 人正在直播中」數字在同模組 `extra.follow_Online`。只能當計數器，不能拿名單。
 
-- 證據：`docs/evidence/homepage_getList_full.json`
 - 頁面發的請求帶 wbi 簽名，但**實測不帶簽名也回 code=0**（cookie 即可）。
 
 ## 1c. `GET https://api.live.bilibili.com/xlive/web-ucenter/v1/xfetter/GetWebList`（文件收錄，未實測）
@@ -65,7 +63,6 @@
 
 ## 2. `GET https://api.live.bilibili.com/xlive/web-ucenter/user/MedalWall`（目前監控源）
 
-- 證據：`docs/evidence/medalwall_p1.json`、`medalwall_p2.json`、`medalwall_probe.json`
 - Query：僅 `target_id`（必要；缺失回 `code=-400`）
 - 認證：僅 cookie；**查別人的勳章牆也需登入**（`code=-101`）
 - **無分頁**：`page=1` 與 `page=2` 回應完全相同（90 項一次全返），page 參數被忽略。
@@ -73,7 +70,7 @@
 
 ### 致命覆蓋率問題（實測數字）
 
-- 關注直播中 **115** 人，MedalWall `live_status=1` 只有 **14** 人（14 人全在關注列表內）。
+- 抽樣時關注中約 **115** 人在直播，MedalWall `live_status=1` 只有 **14** 人，且全在關注列表內 —— 勳章牆是關注列表的子集，覆蓋率約 12%。
 - **101 人（88%）直播中的關注主播在 MedalWall 不可見**——只有領過粉絲勳章的主播才上牆，關注 ≠ 有勳章。
 - 其他怪癖：
   - **無 `room_id` 欄位**，要從 `link` URL 解析（`live.bilibili.com/23307008?...`）。
@@ -84,7 +81,6 @@
 
 一次查多個主播的房間狀態，**自訂房間批次化與全關注補欄位的關鍵端點**。
 
-- 證據：`docs/evidence/batch_status_by_uids.json`、`batch_status_limits_probe.json`
 - 參數格式：`?uids[]=a&uids[]=b`（`uids[0]=` 亦可；**CSV `uids=a,b,c` 回 `code:1 invalid params`**）
 - 認證：文件明載「無需 Cookie」；帶 cookie 也可用。無 wbi。
 - 回應：**`data` 是以 uid 字串為 key 的物件**（非陣列）：
@@ -95,16 +91,14 @@
 
 ## 4. `GET https://api.live.bilibili.com/room/v1/Room/get_info`
 
-- 證據：`docs/evidence/room_get_info.json`
 - Query：`room_id`（可用短號）；公開接口，無 wbi。
 - 回應：`uid`、`room_id`（長號）、`short_id`、`title`、`live_status`(0/1/2)、`live_time`（字串 `"YYYY-MM-DD HH:mm:ss"`，離線為 `"0000-00-00 00:00:00"`）、`online`、`attention`、`area_*`、`user_cover`、`keyframe`、`description`、`room_silent_*` 等。
 - **注意：無 `uname`**（要名字用 §3 批次或 §5）。`code=1` = 房間不存在。
 
 ## 5. `GET https://api.live.bilibili.com/xlive/web-room/v1/index/getInfoByRoom`
 
-- 證據：`docs/evidence/room_getInfoByRoom_xlive.json`（code=0）
 - 回應巨大：`data.room_info{uid, room_id, title, live_status, live_start_time:unix, online, cover, keyframe...}` + `data.anchor_info.base_info.uname`。
-- **候選端點 `room/v1/Room/get_info_by_room` 不存在**：HTTP 200 但 `code=1000003`「方法未在控制器中找到」（證據：`docs/evidence/room_get_info_by_room.json`）。文件庫亦未收錄該名稱。
+- **候選端點 `room/v1/Room/get_info_by_room` 不存在**：HTTP 200 但 `code=1000003`「方法未在控制器中找到」。文件庫亦未收錄該名稱。
 
 ## 6. `GET https://api.live.bilibili.com/live_user/v1/Master/info`
 
@@ -134,17 +128,3 @@
 - api.live.bilibili.com 的 CORS 反射 origin 且 allow-credentials（站內 XHR 即如此運作），擴展 background `fetch(..., {credentials:'include'})` 預期可用，但 **SW 的 Referer 為 `chrome-extension://<id>`**，屬「Referer 異常」弱觸發因子（無確切封禁記載）。
 - **階段 3 前需在瀏覽器實測：擴展上下文 fetch（Referer/Origin 影響）與 GetWebList 端點。**
 
-## 8. 證據檔案清單（`docs/evidence/`）
-
-| 檔案 | 內容 |
-|---|---|
-| `follow_feed.json` | following page=1 原始回應（count=1769, live_count=116） |
-| `follow_feed_pagination_probe.json` | page_size 邊界（上限 29、≥30 夾回 10）、排序、越界、live_status=2 覆核 |
-| `homepage_getList_full.json` | 首頁 getList（關注模組 6 卡 + extra.follow_Online=115） |
-| `medalwall_p1.json` / `medalwall_p2.json` | MedalWall 原始回應（兩者相同 → 無分頁） |
-| `medalwall_probe.json` | MedalWall 組成/覆蓋率對比（14/115） |
-| `batch_status_by_uids.json` | 批次 10 uid 原始回應 |
-| `batch_status_limits_probe.json` | 參數格式、10→319 上限掃描、逐欄位 schema |
-| `room_get_info.json` | get_info 原始回應 |
-| `room_get_info_by_room.json` | code=1000003（端點不存在之證據） |
-| `room_getInfoByRoom_xlive.json` | xlive 版 getInfoByRoom 原始回應 |
