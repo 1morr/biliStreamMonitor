@@ -89,6 +89,9 @@ it on is the only thing that makes the extension page your whole follow list.
 No `<all_urls>`, no analytics, no third-party requests. The content script runs
 on exactly one URL pattern, to keep the preview player in sync.
 
+Which cookie is read, which endpoints are called and where the data stays is
+written out endpoint by endpoint in [PRIVACY.md](PRIVACY.md).
+
 ## Configuration
 
 Everything lives behind the gear in the popup: refresh interval (30 s minimum,
