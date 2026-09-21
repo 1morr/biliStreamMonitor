@@ -3,7 +3,7 @@
 // Single source of truth for "which bucket is this streamer in" and "does this
 // streamer fall inside a given channel's scope". The poller, the notifier and
 // the popup all need these answers; the v3.0 audit already had to fix one round
-// of the same logic drifting across three copies (see docs/audit.md #8).
+// of the same logic drifting across three copies.
 
 import {
     AlertSource,

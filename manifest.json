@@ -3,7 +3,7 @@
     "default_locale": "en",
     "name": "BiliStreamMonitor",
     "version": "4.0",
-    "description": "Monitor Bilibili live status for your medal wall, custom rooms and marked streamers.",
+    "description": "Live status for your Bilibili medal wall, custom rooms, marked streamers, or everyone you follow.",
     "minimum_chrome_version": "120",
     "permissions": [
         "cookies",
