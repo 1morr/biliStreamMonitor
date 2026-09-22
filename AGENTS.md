@@ -9,7 +9,8 @@ buckets — "who I follow" and "who may interrupt me" are deliberately separate.
 ## Hard constraints
 
 - **No build step, no dependencies.** ES modules with `"type": "module"` in the
-  service worker; icons are vendored under `vendor/fontawesome/` (no CDN).
+  service worker; icons are an inline `<symbol>` sprite in `popup/popup.html`
+  (no CDN, no icon font, no external `icons.svg`).
 - `shared/scope.js` is the single source of truth for bucketing and scope
   predicates — never re-derive "which bucket is this streamer in" elsewhere.
   The v3.0 audit already had to fix one round of that logic drifting across
