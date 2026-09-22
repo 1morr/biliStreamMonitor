@@ -67,7 +67,7 @@
 | `*.bilibili.com` | 直播 API 與預覽播放器 |
 | `*.hdslb.com` | 頭像與直播封面 |
 
-沒有 `<all_urls>`，沒有任何分析工具，也不會對第三方發出請求。content script 只作用在唯一一個網址模式上，用來讓預覽播放器保持同步。
+沒有 `<all_urls>`，沒有任何分析工具，不會對第三方發出請求，也沒有 content script —— 預覽播放器是透過它自己的 `postMessage` 控制通道操作的。
 
 讀了哪個 cookie、呼叫了哪些 endpoint、資料留在哪裡，逐條寫在 [PRIVACY.md](PRIVACY.md)（英文）。
 

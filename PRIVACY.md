@@ -61,10 +61,11 @@ Only to your own machine and to Bilibili.
   list, alert scope, view mode, refresh interval, preview options, appearance —
   because `exportConfig` copies a fixed `SETTINGS_KEYS` allowlist and
   deliberately leaves runtime state out (`shared/storage.js`).
-- **The content script is narrow.** It runs on one URL pattern, the Bilibili
-  live-activity player page (`manifest.json` → `content_scripts.matches`), and
-  acts only on `postMessage` events whose `event.origin` is this extension's own
-  id, which it uses to sync mute and volume (`content_script.js`).
+- **No content script.** The extension injects no code into any page. The
+  preview player's volume is set through the control channel the player itself
+  documents — a `postMessage` addressed to `https://www.bilibili.com`, carrying
+  nothing but a volume number (`popup/preview-protocol.js`). Nothing is read
+  back out of the frame.
 
 ## What is not collected
 

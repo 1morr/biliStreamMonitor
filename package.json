@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "lint": "eslint .",
-    "test": "node --test tests/scope.test.mjs",
+    "test": "node --test \"tests/**/*.mjs\"",
     "screenshots": "node scripts/screenshots.mjs . docs/images"
   },
   "devDependencies": {

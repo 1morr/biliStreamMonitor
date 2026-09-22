@@ -3,6 +3,7 @@
 
 import { fetchRoomInfo, normalizeImageUrl } from '../shared/api.js';
 import { t } from '../shared/i18n.js';
+import { PLAYER_ORIGIN, livePlayerUrl, volumeCommand } from './preview-protocol.js';
 
 const previewTooltip = document.getElementById('preview-tooltip');
 const previewImg = document.getElementById('preview-img');
@@ -12,14 +13,23 @@ const previewTitle = document.getElementById('preview-title');
 const previewTime = document.getElementById('preview-time');
 
 const HOVER_DELAY_MS = 350;
-const LIVE_PLAYER_URL = (roomId) =>
-    `https://www.bilibili.com/blackboard/live/live-activity-player.html?cid=${roomId}&muted=1&autoplay=1`;
+
+// The player ignores volume commands until it has built its own <video>, which
+// lands roughly a second after the iframe's load event and moves with the
+// network. It acknowledges nothing, and the frame is cross-origin to the popup,
+// so the applied value cannot be read back either. The command is therefore
+// re-asserted over a bounded window instead of being fired once at a guessed
+// moment -- firing once was what made the configured volume arrive late.
+const VOLUME_SYNC_INTERVAL_MS = 250;
+const VOLUME_SYNC_ATTEMPTS = 24; // ~6s, comfortably past a slow player start
 
 // Session-scoped room info cache (same lifetime as the old in-memory Map).
 const roomCache = new Map();
 
 let hoverTimeout;
 let iframeLoadTimeout;
+let thumbFadeTimeout;
+let volumeSyncTimer = null;
 let currentHoverUid = null;
 
 /**
@@ -62,7 +72,7 @@ export function handleHover(e, streamer, state) {
         }
 
         previewIframe.classList.add('hidden');
-        previewIframe.src = '';
+        unmountPlayer();
 
         previewLoader.classList.remove('hidden');
 
@@ -111,28 +121,29 @@ export function handleHover(e, streamer, state) {
             previewImg.onload = showThumbnail;
             if (previewImg.complete) showThumbnail();
 
-            // 2. Load the live player
-            previewIframe.src = LIVE_PLAYER_URL(roomId);
+            // 2. Load the live player. It opens silent (mute=1) whatever the
+            //    volume the player remembers, so the level can be applied on
+            //    its own schedule instead of racing the first frame of audio.
+            previewIframe.src = livePlayerUrl(roomId);
+            if (state.previewSound) startVolumeSync(state);
 
             previewIframe.onload = () => {
                 previewIframe.classList.remove('hidden');
 
-                // Delay hiding the thumbnail and enabling audio to keep
-                // sound and picture in sync
+                // Hold the thumbnail over the player for a moment; the player
+                // shows its own black frame before the stream arrives.
                 iframeLoadTimeout = setTimeout(() => {
                     liveReady = true;
 
                     if (previewImg.classList.contains('loaded')) {
                         previewImg.classList.remove('loaded');
-                        setTimeout(() => {
+                        thumbFadeTimeout = setTimeout(() => {
                             previewImg.classList.add('hidden');
                         }, 500);
                     } else {
                         previewLoader.classList.add('hidden');
                         previewImg.classList.add('hidden');
                     }
-
-                    updateIframeAudio(state);
                 }, 800);
             };
         } else {
@@ -172,14 +183,32 @@ export function handleLeave() {
     currentHoverUid = null;
     clearTimeout(hoverTimeout);
     clearTimeout(iframeLoadTimeout);
+    clearTimeout(thumbFadeTimeout);
+    stopVolumeSync();
     previewTooltip.classList.remove('visible');
     setTimeout(() => {
         if (!currentHoverUid) {
             previewTooltip.classList.add('hidden');
             previewImg.src = '';
-            previewIframe.src = '';
+            unmountPlayer();
         }
     }, 200);
+}
+
+/**
+ * Tear the player down.
+ *
+ * `removeAttribute` rather than `src = ''`: an empty src attribute still
+ * reflects back through the `src` property as the document's base URL, which
+ * would leave every `previewIframe.src` guard permanently true. Clearing the
+ * src also fires `load` one more time, so the handler is dropped first --
+ * otherwise the previous hover's closure runs the thumbnail swap again against
+ * a blank frame.
+ */
+function unmountPlayer() {
+    stopVolumeSync();
+    previewIframe.onload = null;
+    previewIframe.removeAttribute('src');
 }
 
 function updateTooltipPosition(targetEl, state) {
@@ -228,20 +257,29 @@ function updateTooltipPosition(targetEl, state) {
 }
 
 /**
- * Volume bridge into the player iframe. The protocol is owned by
- * content_script.js and must stay exactly: { type: 'BSM_UPDATE_VOLUME', muted, volume }.
+ * Push the current volume into the player, through the player's own documented
+ * control channel (see popup/preview-protocol.js). Safe to call at any time:
+ * with no player mounted it does nothing.
+ *
+ * Targeted at the player's origin rather than '*', so the command cannot follow
+ * the frame if it is ever navigated somewhere else.
  */
 export function updateIframeAudio(state) {
-    if (previewIframe && !previewIframe.classList.contains('hidden') && previewIframe.src) {
-        // Targeted at the iframe's own origin (LIVE_PLAYER_URL), not '*': a
-        // wildcard target would still hand the message to whatever page the
-        // iframe happens to be navigated to. content_script.js independently
-        // checks event.origin against this extension's own origin (the
-        // origin this message is actually sent FROM) before acting on it.
-        previewIframe.contentWindow.postMessage({
-            type: 'BSM_UPDATE_VOLUME',
-            muted: !state.previewSound,
-            volume: state.previewVolume / 100
-        }, 'https://www.bilibili.com');
-    }
+    if (!previewIframe || !previewIframe.getAttribute('src')) return;
+    previewIframe.contentWindow.postMessage(volumeCommand(state), PLAYER_ORIGIN);
+}
+
+/** Re-assert the volume until the player is far enough along to accept it. */
+function startVolumeSync(state) {
+    stopVolumeSync();
+    let attemptsLeft = VOLUME_SYNC_ATTEMPTS;
+    volumeSyncTimer = setInterval(() => {
+        updateIframeAudio(state);
+        if (--attemptsLeft <= 0) stopVolumeSync();
+    }, VOLUME_SYNC_INTERVAL_MS);
+}
+
+function stopVolumeSync() {
+    clearInterval(volumeSyncTimer);
+    volumeSyncTimer = null;
 }

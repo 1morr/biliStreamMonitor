@@ -3,12 +3,12 @@
 // hand-picks a small, high-signal rule set instead of extending a shared
 // "recommended" bundle.
 
-// WebExtension APIs (background service worker, content script, popup).
+// WebExtension APIs (background service worker, popup).
 const webextensionGlobals = {
     chrome: 'readonly'
 };
 
-// Standard browser globals used across popup/*.js and content_script.js.
+// Standard browser globals used across popup/*.js.
 const browserGlobals = {
     window: 'readonly',
     document: 'readonly',
@@ -35,7 +35,9 @@ const browserGlobals = {
 
 const nodeGlobals = {
     process: 'readonly',
-    console: 'readonly'
+    console: 'readonly',
+    URL: 'readonly',
+    URLSearchParams: 'readonly'
 };
 
 const sharedRules = {
@@ -51,9 +53,9 @@ export default [
     {
         ignores: ['node_modules/**']
     },
-    // Extension source: background/, popup/, shared/, content_script.js.
+    // Extension source: background/, popup/, shared/.
     {
-        files: ['background/**/*.js', 'popup/**/*.js', 'shared/**/*.js', 'content_script.js'],
+        files: ['background/**/*.js', 'popup/**/*.js', 'shared/**/*.js'],
         languageOptions: {
             ecmaVersion: 2022,
             sourceType: 'module',

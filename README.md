@@ -86,8 +86,8 @@ it on is the only thing that makes the extension page your whole follow list.
 | `*.bilibili.com` | The live API and the preview player |
 | `*.hdslb.com` | Avatars and stream covers |
 
-No `<all_urls>`, no analytics, no third-party requests. The content script runs
-on exactly one URL pattern, to keep the preview player in sync.
+No `<all_urls>`, no analytics, no third-party requests, and no content script:
+the preview player is driven through its own `postMessage` control channel.
 
 Which cookie is read, which endpoints are called and where the data stays is
 written out endpoint by endpoint in [PRIVACY.md](PRIVACY.md).

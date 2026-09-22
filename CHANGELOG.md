@@ -4,6 +4,27 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/)，版本號遵循[語意化版本](https://semver.org/lang/zh-TW/)。
 
+## [Unreleased]
+
+### Fixed
+
+- **直播預覽一開始會以最大音量爆音，過一會兒才套用設定中的音量。** 嵌入網址寫的是 `muted=1`，但活動播放器的靜音參數叫 `mute` —— 拼錯的參數被無聲忽略，播放器於是用它自己記住的音量（實測 90%）直接開播。音量則要等 iframe `load` 事件後再 800 毫秒才送出，而播放器要到它自己的 `<video>` 建立完成（實測比 `load` 晚約 1.2 秒，且隨網速漂移）才肯接受音量指令，所以那一次指令通常整個被吞掉，得等某次不相干的 DOM 變動才補上。三者疊起來就是「先大聲、後變正常」。
+
+### Changed
+
+- **預覽播放器改用官方的 `postMessage` 控制通道**（`setPlayer-{"type":"changeVolume",...}`，音量刻度是 **0–100** 而非 `HTMLMediaElement` 的 0–1）。網址改帶 `mute=1`，播放器從第一幀就是無聲；音量在掛載後於一個有界的視窗內反覆送出，直到播放器願意接受為止 —— 播放器不回 ack，而該 iframe 與 popup 跨來源、讀不回來，所以改用重申取代「猜一個時間點送一次」。
+- **移除 content script**（`content_script.js` 與 manifest 的 `content_scripts` 區塊，含 `all_frames` 注入）。它原本直接去搶播放器的 `video.volume`，正是「設定被播放器覆寫、要等下一次 DOM 變動才生效」的來源；改走官方通道後不再需要向任何頁面注入程式碼。`PRIVACY.md` 與兩份 README 同步更新。
+
+### Fixed（複查發現）
+
+- **關閉預覽時 `iframe.src = ''` 沒有真的清乾淨。** 空字串的 `src` 屬性反射回 `src` 性質時是文件的 base URL（truthy），所以 `updateIframeAudio` 裡的 `previewIframe.src` 守衛從來沒有守住過；清空 `src` 還會再觸發一次 `load`，而 `onload` 未被移除，於是上一次懸停的 closure 會對著空白 frame 再跑一次縮圖交換。改為移除 `src` 屬性並在拆卸時清掉 `onload`。
+- **縮圖淡出的 500 毫秒計時器沒有被追蹤**，離開卡片時不會取消。
+
+### 開發
+
+- `npm test` 改為 `node --test "tests/**/*.mjs"`，與 CI 一致。原本寫死 `tests/scope.test.mjs`，新增的測試檔不會被 `npm test` 跑到 —— 而 `AGENTS.md` 宣稱 `npm test` 就是閘門。
+- 新增 `tests/preview-protocol.test.mjs`：釘住靜音參數名與 0–100 音量刻度。這兩個值錯掉時播放器都不會報錯，只會安靜地用錯的行為跑。
+
 ## [4.0.0] - 2026-08-31
 
 提醒範圍重構。角標與桌面通知不再跟著「監控了誰」走，而是由一組明確的來源訂閱決定；三位數角標在結構上不再可能發生。
